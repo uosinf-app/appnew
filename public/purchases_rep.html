@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تقرير المشتريات</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --accent-color: #1abc9c;
+    --light-color: #f5f7fa;
+    --dark-color: #34495e;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --border-radius: 12px;
+    --box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+    --transition: all 0.3s ease;
+    --gradient-primary: linear-gradient(135deg, #3498db, #1abc9c);
+    --gradient-secondary: linear-gradient(135deg, #2c3e50, #34495e);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.header {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 25px;
+    border-radius: var(--border-radius);
+    margin-bottom: 25px;
+    text-align: center;
+    box-shadow: var(--box-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+    background-size: cover;
+}
+
+.header h1 {
+    font-size: 2.2rem;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.connection-status {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 4px solid #28a745;
+    transition: var(--transition);
+}
+
+.loading-spinner {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+}
+
+.card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 25px;
+    box-shadow: var(--box-shadow);
+    transition: var(--transition);
+    border: none;
+    margin-bottom: 25px;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+}
+
+.card-title {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+    color: var(--secondary-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--light-color);
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.filter-section {
+    background: var(--light-color);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    border-right: 4px solid var(--primary-color);
+}
+
+.filter-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--dark-color);
+    font-size: 0.95rem;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: var(--transition);
+    background-color: white;
+    font-family: inherit;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    min-width: 140px;
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success-color), #27ae60);
+    color: white;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--warning-color), #e67e22);
+    color: white;
+}
+
+.actions-section {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.report-content {
+    display: none;
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 25px;
+    box-shadow: var(--box-shadow);
+    margin-top: 25px;
+}
+
+.report-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--light-color);
+}
+
+.report-title {
+    font-size: 1.8rem;
+    color: var(--secondary-color);
+    margin-bottom: 10px;
+}
+
+.report-subtitle {
+    font-size: 1.1rem;
+    color: var(--dark-color);
+    margin-bottom: 15px;
+}
+
+.user-info, .filters-info {
+    background: var(--light-color);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+
+.section-title {
+    font-size: 1.3rem;
+    color: var(--secondary-color);
+    margin: 25px 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--light-color);
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 0.9rem;
+}
+
+.report-table th {
+    background: var(--gradient-secondary);
+    color: white;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid #2c3e50;
+}
+
+.report-table td {
+    padding: 10px 8px;
+    border: 1px solid #e1e5e9;
+    text-align: center;
+}
+
+.report-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.report-table tr:hover {
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+.summary-row {
+    background: var(--light-color) !important;
+    font-weight: 600;
+}
+
+.invoice-header {
+    background: var(--primary-color) !important;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: #7f8c8d;
+    font-size: 1.1rem;
+    background: var(--light-color);
+    border-radius: var(--border-radius);
+}
+
+.page-break {
+    page-break-before: always;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+    
+    .header {
+        padding: 20px;
+        border-radius: 10px;
+    }
+    
+    .header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .card {
+        padding: 20px;
+    }
+    
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .actions-section {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .connection-status {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        font-size: 12px;
+    }
+    
+    .report-table {
+        font-size: 0.8rem;
+    }
+    
+    .report-table th,
+    .report-table td {
+        padding: 8px 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        border-radius: 8px;
+    }
+    
+    .header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .card {
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    input, select {
+        padding: 10px 12px;
+    }
+    
+    .btn {
+        padding: 12px 20px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card, .report-content {
+    animation: fadeIn 0.5s ease;
+}
+
+/* Print Styles */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .report-content,
+    .report-content * {
+        visibility: visible;
+    }
+    .report-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        box-shadow: none;
+        margin: 0;
+        padding: 20px;
+    }
+    .no-print {
+        display: none !important;
+    }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+    <!-- شريط حالة الاتصال -->
+    <div class="connection-status no-print">
+        <span id="connection-status">
+            <i class="fas fa-spinner fa-spin"></i> جاري الاتصال...
+        </span>
+    </div>
+
+    <!-- مؤشر التحميل -->
+    <div id="loading-spinner" class="loading-spinner no-print">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+    </div>
+
+    <!-- الهيدر -->
+    <div class="header no-print">
+        <h1><i class="fas fa-chart-bar"></i> تقرير المشتريات</h1>
+        <div>نظام إدارة المخازن والمستودعات</div>
+    </div>
+
+    <!-- الفلاتر -->
+    <div class="card no-print">
+        <h2 class="card-title"><i class="fas fa-filter"></i> معايير البحث</h2>
+        <div class="filters-grid">
+            <div class="filter-section">
+                <h3><i class="fas fa-calendar-alt"></i> الفترة الزمنية</h3>
+                <div class="filter-group">
+                    <label for="dateFrom">من تاريخ:</label>
+                    <input type="date" id="dateFrom">
+                </div>
+                <div class="filter-group">
+                    <label for="dateTo">إلى تاريخ:</label>
+                    <input type="date" id="dateTo">
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3><i class="fas fa-warehouse"></i> المخازن والموردين</h3>
+                <div class="filter-group">
+                    <label for="storeFrom">من فرع:</label>
+                    <select id="storeFrom"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="storeTo">إلى فرع:</label>
+                    <select id="storeTo"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="supplierFrom">من مورد:</label>
+                    <select id="supplierFrom"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="supplierTo">إلى مورد:</label>
+                    <select id="supplierTo"></select>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3><i class="fas fa-boxes"></i> الأصناف والإعدادات</h3>
+                <div class="filter-group">
+                    <label for="itemFrom">من صنف:</label>
+                    <select id="itemFrom"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="itemTo">إلى صنف:</label>
+                    <select id="itemTo"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="userName">اسم المستخدم:</label>
+                    <input type="text" id="userName" placeholder="أدخل اسم المستخدم">
+                </div>
+                <div class="filter-group">
+                    <label for="paymentMethod">طريقة الدفع:</label>
+                    <select id="paymentMethod">
+                        <option value="">الكل</option>
+                        <option value="cash">نقدي</option>
+                        <option value="credit">آجل</option>
+                        <option value="check">شيك</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- الأزرار -->
+        <div class="actions-section">
+            <button class="btn btn-primary" id="generateReportBtn">
+                <i class="fas fa-chart-bar"></i> إنشاء التقرير
+            </button>
+            <button class="btn btn-success" id="exportPdfBtn">
+                <i class="fas fa-file-pdf"></i> تصدير PDF
+            </button>
+            <button class="btn btn-warning" id="printBtn">
+                <i class="fas fa-print"></i> طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- عرض التقرير -->
+    <div class="report-content" id="reportContent"></div>
+</div>
+
+<script>
+// PurchaseReportApp - مع دعم Supabase
+class PurchaseReportApp {
+    constructor() {
+        // تكوين Supabase
+        this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+        this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+        this.supabase = null;
+        this.isOnline = false;
+        
+        this.allPurchases = [];
+        this.allStores = [];
+        this.allSuppliers = [];
+        this.allItems = [];
+        
+        this.init();
+    }
+
+    async init() {
+        this.dom = this._initDOM();
+        this._bindEvents();
+        const connected = await this.initSupabase();
+        
+        if (connected) {
+            await this.loadInitialData();
+            this.setDefaultDates();
+            this.addEnterNavigation();
+        } else {
+            this.showError('فشل في الاتصال بقاعدة البيانات. يرجى التحقق من الاتصال بالإنترنت.');
+        }
+    }
+
+    _initDOM() {
+        return {
+            // عناصر الفلترة
+            dateFrom: document.getElementById("dateFrom"),
+            dateTo: document.getElementById("dateTo"),
+            storeFrom: document.getElementById("storeFrom"),
+            storeTo: document.getElementById("storeTo"),
+            supplierFrom: document.getElementById("supplierFrom"),
+            supplierTo: document.getElementById("supplierTo"),
+            itemFrom: document.getElementById("itemFrom"),
+            itemTo: document.getElementById("itemTo"),
+            userName: document.getElementById("userName"),
+            paymentMethod: document.getElementById("paymentMethod"),
+            
+            // الأزرار
+            generateReportBtn: document.getElementById("generateReportBtn"),
+            exportPdfBtn: document.getElementById("exportPdfBtn"),
+            printBtn: document.getElementById("printBtn"),
+            
+            // عرض التقرير
+            reportContent: document.getElementById("reportContent"),
+            
+            // حالة النظام
+            connectionStatus: document.getElementById("connection-status"),
+            loadingSpinner: document.getElementById("loading-spinner")
+        };
+    }
+
+    _bindEvents() {
+        this.dom.generateReportBtn.addEventListener("click", () => this.generateReport());
+        this.dom.exportPdfBtn.addEventListener("click", () => this.exportToPDF());
+        this.dom.printBtn.addEventListener("click", () => this.printReport());
+    }
+
+    async initSupabase() {
+        try {
+            this.showLoading(true);
+            this.updateConnectionStatus('warning', '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال...');
+            
+            console.log('🔄 جاري تهيئة Supabase...');
+            this.supabase = supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+            
+            // اختبار الاتصال البسيط
+            const { data, error } = await this.supabase.auth.getSession();
+            
+            if (error) {
+                console.error('❌ خطأ في المصادقة:', error);
+                throw error;
+            }
+
+            this.isOnline = true;
+            this.updateConnectionStatus('success', '<i class="fas fa-cloud-check"></i> متصل بالسحابة');
+            console.log('✅ Supabase متصل بنجاح');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ فشل في الاتصال بـ Supabase:', error);
+            this.isOnline = false;
+            this.updateConnectionStatus('danger', '<i class="fas fa-cloud-slash"></i> غير متصل');
+            
+            let errorMessage = 'فشل في الاتصال بقاعدة البيانات';
+            if (error.message) {
+                errorMessage += `: ${error.message}`;
+            }
+            this.showError(errorMessage);
+            return false;
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    // تحديث حالة الاتصال
+    updateConnectionStatus(type, message) {
+        if (!this.dom.connectionStatus) return;
+        
+        this.dom.connectionStatus.innerHTML = message;
+        this.dom.connectionStatus.style.borderLeftColor = 
+            type === 'success' ? '#28a745' : 
+            type === 'danger' ? '#dc3545' : '#ffc107';
+    }
+
+    // إظهار/إخفاء مؤشر التحميل
+    showLoading(show) {
+        if (this.dom.loadingSpinner) {
+            this.dom.loadingSpinner.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    // تعيين التواريخ الافتراضية
+    setDefaultDates() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        this.dom.dateFrom.valueAsDate = firstDay;
+        this.dom.dateTo.valueAsDate = today;
+    }
+
+    // التنقل بالـ Enter بين الحقول
+    addEnterNavigation() {
+        const focusable = Array.from(document.querySelectorAll(
+            'input:not([type="hidden"]), select, button'
+        )).filter(el => !el.disabled && el.offsetParent !== null);
+
+        focusable.forEach((el, i) => {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const next = focusable[i + 1];
+                    if (next) next.focus();
+                }
+            });
+        });
+    }
+
+    // تحميل البيانات الأولية
+    async loadInitialData() {
+        try {
+            this.showLoading(true);
+            await Promise.all([
+                this.loadStores(),
+                this.loadSuppliers(),
+                this.loadItems()
+            ]);
+            console.log('✅ تم تحميل جميع البيانات بنجاح');
+        } catch (error) {
+            console.error('❌ خطأ في تحميل البيانات:', error);
+            this.showError('حدث خطأ في تحميل البيانات الأساسية: ' + error.message);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    // تحميل المخازن
+    async loadStores() {
+        try {
+            if (!this.supabase) {
+                this.showError('غير متصل بقاعدة البيانات');
+                return;
+            }
+
+            const { data, error } = await this.supabase
+                .from('stores')
+                .select('store_id, store_name')
+                .order('store_name');
+
+            if (error) {
+                console.error('❌ خطأ في تحميل المخازن:', error);
+                this.showError('خطأ في تحميل المخازن: ' + error.message);
+                return;
+            }
+
+            this.allStores = data || [];
+            this.renderDropdown(this.dom.storeFrom, this.allStores, 'store_id', 'store_name', 'جميع المخازن');
+            this.renderDropdown(this.dom.storeTo, this.allStores, 'store_id', 'store_name', 'جميع المخازن');
+            
+        } catch (error) {
+            console.error('❌ خطأ في تحميل المخازن:', error);
+            this.showError('خطأ في تحميل المخازن: ' + error.message);
+        }
+    }
+
+    // تحميل الموردين
+    async loadSuppliers() {
+        try {
+            if (!this.supabase) {
+                this.showError('غير متصل بقاعدة البيانات');
+                return;
+            }
+
+            const { data, error } = await this.supabase
+                .from('suppliers')
+                .select('supplierid, supplier_name')
+                .order('supplier_name');
+
+            if (error) {
+                console.error('❌ خطأ في تحميل الموردين:', error);
+                this.showError('خطأ في تحميل الموردين: ' + error.message);
+                return;
+            }
+
+            this.allSuppliers = data || [];
+            this.renderDropdown(this.dom.supplierFrom, this.allSuppliers, 'supplierid', 'supplier_name', 'جميع الموردين');
+            this.renderDropdown(this.dom.supplierTo, this.allSuppliers, 'supplierid', 'supplier_name', 'جميع الموردين');
+            
+        } catch (error) {
+            console.error('❌ خطأ في تحميل الموردين:', error);
+            this.showError('خطأ في تحميل الموردين: ' + error.message);
+        }
+    }
+
+    // تحميل الأصناف
+    async loadItems() {
+        try {
+            if (!this.supabase) {
+                this.showError('غير متصل بقاعدة البيانات');
+                return;
+            }
+
+            const { data, error } = await this.supabase
+                .from('items')
+                .select('item_id, item_nm')
+                .order('item_nm');
+
+            if (error) {
+                console.error('❌ خطأ في تحميل الأصناف:', error);
+                this.showError('خطأ في تحميل الأصناف: ' + error.message);
+                return;
+            }
+
+            this.allItems = data || [];
+            this.renderDropdown(this.dom.itemFrom, this.allItems, 'item_id', 'item_nm', 'جميع الأصناف');
+            this.renderDropdown(this.dom.itemTo, this.allItems, 'item_id', 'item_nm', 'جميع الأصناف');
+            
+        } catch (error) {
+            console.error('❌ خطأ في تحميل الأصناف:', error);
+            this.showError('خطأ في تحميل الأصناف: ' + error.message);
+        }
+    }
+
+    // عرض القوائم المنسدلة
+    renderDropdown(element, data, valueField, displayField, defaultText) {
+        if (!element) return;
+        
+        element.innerHTML = `<option value="">${defaultText}</option>` +
+            data.map(item => 
+                `<option value="${item[valueField]}">${item[valueField]} - ${item[displayField]}</option>`
+            ).join('');
+    }
+
+    // إنشاء التقرير
+    async generateReport() {
+        try {
+            this.showLoading(true);
+            const originalText = this.dom.generateReportBtn.textContent;
+            this.dom.generateReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+            this.dom.generateReportBtn.disabled = true;
+
+            const filters = this.getFilters();
+            console.log('🔄 جاري إنشاء التقرير...', filters);
+
+            if (!this.supabase || !this.isOnline) {
+                this.showError('غير متصل بقاعدة البيانات');
+                return;
+            }
+
+            try {
+                // بناء الاستعلام بناءً على الهيكل الجديد
+                let query = this.supabase
+                    .from('purchases')
+                    .select(`
+                        *,
+                        stores!purchases_store_id_fkey(store_name),
+                        suppliers!purchases_supplierid_fkey(supplier_name),
+                        items!purchases_item_id_fkey(item_nm)
+                    `)
+                    .order('tran_date', { ascending: false });
+
+                // تطبيق الفلاتر
+                if (filters.dateFrom) {
+                    query = query.gte('tran_date', filters.dateFrom + 'T00:00:00');
+                }
+                if (filters.dateTo) {
+                    query = query.lte('tran_date', filters.dateTo + 'T23:59:59');
+                }
+                if (filters.storeFrom) {
+                    query = query.gte('store_id', filters.storeFrom);
+                }
+                if (filters.storeTo) {
+                    query = query.lte('store_id', filters.storeTo);
+                }
+                if (filters.supplierFrom) {
+                    query = query.gte('supplierid', filters.supplierFrom);
+                }
+                if (filters.supplierTo) {
+                    query = query.lte('supplierid', filters.supplierTo);
+                }
+                if (filters.itemFrom) {
+                    query = query.gte('item_id', filters.itemFrom);
+                }
+                if (filters.itemTo) {
+                    query = query.lte('item_id', filters.itemTo);
+                }
+                if (filters.paymentMethod) {
+                    query = query.eq('payment_method', filters.paymentMethod);
+                }
+
+                const { data, error } = await query;
+
+                if (error) {
+                    console.error('❌ خطأ في تحميل المشتريات:', error);
+                    this.showError('خطأ في تحميل بيانات المشتريات: ' + error.message);
+                    return;
+                }
+
+                this.allPurchases = data || [];
+                const filteredPurchases = this.filterPurchases(this.allPurchases, filters);
+                console.log(`📊 بعد الفلترة: ${filteredPurchases.length} فاتورة`);
+                this.displayReport(filteredPurchases, filters);
+                
+            } catch (error) {
+                console.error('❌ خطأ في الاستعلام:', error);
+                this.showError('حدث خطأ في جلب البيانات: ' + error.message);
+            }
+            
+        } catch (error) {
+            console.error('❌ خطأ في إنشاء التقرير:', error);
+            this.showError('حدث خطأ في إنشاء التقرير: ' + error.message);
+        } finally {
+            this.showLoading(false);
+            if (this.dom.generateReportBtn) {
+                this.dom.generateReportBtn.innerHTML = '<i class="fas fa-chart-bar"></i> إنشاء التقرير';
+                this.dom.generateReportBtn.disabled = false;
+            }
+        }
+    }
+
+    // الحصول على الفلاتر
+    getFilters() {
+        return {
+            dateFrom: this.dom.dateFrom.value,
+            dateTo: this.dom.dateTo.value,
+            storeFrom: this.dom.storeFrom.value,
+            storeTo: this.dom.storeTo.value,
+            supplierFrom: this.dom.supplierFrom.value,
+            supplierTo: this.dom.supplierTo.value,
+            itemFrom: this.dom.itemFrom.value,
+            itemTo: this.dom.itemTo.value,
+            userName: this.dom.userName.value,
+            paymentMethod: this.dom.paymentMethod.value
+        };
+    }
+
+    // فلترة المشتريات
+    filterPurchases(purchases, filters) {
+        return purchases.filter(purchase => {
+            // فلترة اسم المستخدم
+            if (filters.userName && purchase.user_name && !purchase.user_name.includes(filters.userName)) {
+                return false;
+            }
+            return true;
+        });
+    }
+
+    // عرض التقرير
+    displayReport(purchases, filters) {
+        this.dom.reportContent.style.display = 'block';
+
+        if (purchases.length === 0) {
+            this.dom.reportContent.innerHTML = `
+                <div class="report-header">
+                    <div class="report-title">تقرير المشتريات</div>
+                    <div class="report-subtitle">الفترة من ${filters.dateFrom || 'بداية'} إلى ${filters.dateTo || 'نهاية'}</div>
+                </div>
+                <div class="no-data">⚠️ لا توجد بيانات مطابقة لمعايير البحث</div>`;
+            return;
+        }
+
+        const totals = this.calculateTotals(purchases);
+        const filtersText = this.getFiltersText(filters);
+
+        let reportHTML = `
+            <div class="report-header">
+                <div class="report-title">تقرير المشتريات</div>
+                <div class="report-subtitle">الفترة من ${filters.dateFrom || 'بداية'} إلى ${filters.dateTo || 'نهاية'}</div>
+            </div>
+            <div class="user-info"><strong>اسم المستخدم:</strong> ${filters.userName || 'غير محدد'}</div>
+            <div class="filters-info"><strong>معايير التقرير:</strong><br>${filtersText}</div>
+            
+            <div class="section-title">ملخص التقرير</div>
+            <table class="report-table">
+                <tr>
+                    <th>عدد الفواتير</th>
+                    <th>إجمالي المشتريات</th>
+                    <th>إجمالي الخصومات</th>
+                    <th>الصافي النهائي</th>
+                    <th>متوسط قيمة الفاتورة</th>
+                </tr>
+                <tr class="summary-row">
+                    <td>${purchases.length}</td>
+                    <td>${this.formatNumber(totals.totalPurchases)} ر.س</td>
+                    <td>${this.formatNumber(totals.totalDiscounts)} ر.س</td>
+                    <td>${this.formatNumber(totals.netTotal)} ر.س</td>
+                    <td>${this.formatNumber(totals.averageInvoice)} ر.س</td>
+                </tr>
+            </table>
+
+            <div class="section-title">تفاصيل المشتريات</div>
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>رقم الفاتورة</th>
+                        <th>التاريخ</th>
+                        <th>المخزن</th>
+                        <th>المورد</th>
+                        <th>كود الصنف</th>
+                        <th>اسم الصنف</th>
+                        <th>الكمية</th>
+                        <th>سعر الشراء</th>
+                        <th>الإجمالي</th>
+                        <th>الخصم</th>
+                        <th>الصافي</th>
+                        <th>طريقة الدفع</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        purchases.forEach((purchase, index) => {
+            const purchaseDate = purchase.tran_date ? new Date(purchase.tran_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            const storeName = purchase.stores?.store_name || purchase.store_id;
+            const supplierName = purchase.suppliers?.supplier_name || purchase.supplier_name || purchase.supplierid;
+            const itemName = purchase.items?.item_nm || purchase.item_nm || purchase.item_id;
+            const paymentMethod = this.getPaymentMethodText(purchase.payment_method);
+
+            reportHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${purchase.invoice_id || ''}</td>
+                    <td>${purchaseDate}</td>
+                    <td>${storeName}</td>
+                    <td>${supplierName}</td>
+                    <td>${purchase.item_id || ''}</td>
+                    <td>${itemName}</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.item_qty))}</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.buy_price))} ر.س</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.total_price))} ر.س</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.discount))} ر.س</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.total_net_buy_price))} ر.س</td>
+                    <td>${paymentMethod}</td>
+                </tr>`;
+        });
+
+        reportHTML += `</tbody></table>`;
+        this.dom.reportContent.innerHTML = reportHTML;
+    }
+
+    // دوال مساعدة
+    calculateTotals(purchases) {
+        let totalPurchases = 0, totalDiscounts = 0, netTotal = 0;
+        purchases.forEach(purchase => {
+            totalPurchases += this.safeParseFloat(purchase.total_price);
+            totalDiscounts += this.safeParseFloat(purchase.discount);
+            netTotal += this.safeParseFloat(purchase.total_net_buy_price);
+        });
+        return {
+            totalPurchases,
+            totalDiscounts,
+            netTotal,
+            averageInvoice: purchases.length > 0 ? netTotal / purchases.length : 0
+        };
+    }
+
+    getFiltersText(filters) {
+        const texts = [];
+        if (filters.dateFrom || filters.dateTo) texts.push(`الفترة: ${filters.dateFrom || 'بداية'} - ${filters.dateTo || 'نهاية'}`);
+        if (filters.storeFrom || filters.storeTo) texts.push(`الفرع: ${this.getSelectedText('storeFrom', filters.storeFrom)} - ${this.getSelectedText('storeTo', filters.storeTo)}`);
+        if (filters.supplierFrom || filters.supplierTo) texts.push(`المورد: ${this.getSelectedText('supplierFrom', filters.supplierFrom)} - ${this.getSelectedText('supplierTo', filters.supplierTo)}`);
+        if (filters.itemFrom || filters.itemTo) texts.push(`الصنف: ${this.getSelectedText('itemFrom', filters.itemFrom)} - ${this.getSelectedText('itemTo', filters.itemTo)}`);
+        if (filters.paymentMethod) texts.push(`طريقة الدفع: ${this.getPaymentMethodText(filters.paymentMethod)}`);
+        if (filters.userName) texts.push(`اسم المستخدم: ${filters.userName}`);
+        return texts.join(' | ');
+    }
+
+    getSelectedText(elementId, value) {
+        if (!value) return 'الكل';
+        const element = document.getElementById(elementId);
+        if (element) {
+            const selectedOption = element.options[element.selectedIndex];
+            if (selectedOption) {
+                const text = selectedOption.textContent || '';
+                const match = text.match(/ - (.*)/);
+                return match ? match[1] : text;
+            }
+        }
+        return value;
+    }
+
+    getPaymentMethodText(method) {
+        const methods = { 'cash': 'نقدي', 'credit': 'آجل', 'check': 'شيك' };
+        return methods[method] || method || 'غير محدد';
+    }
+
+    formatNumber(value) {
+        const num = parseFloat(value);
+        return isNaN(num) ? '0.00' : num.toFixed(2);
+    }
+
+    safeParseFloat(value) {
+        const num = parseFloat(value);
+        return isNaN(num) ? 0 : num;
+    }
+
+    // تصدير إلى PDF
+    exportToPDF() {
+        if (!this.dom.reportContent || this.dom.reportContent.style.display === 'none') {
+            this.showError('⚠️ يرجى إنشاء التقرير أولاً قبل التصدير');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'pt', 'a4');
+        
+        // العنوان
+        doc.setFontSize(18);
+        doc.text('تقرير المشتريات', 40, 40);
+        
+        // التاريخ
+        doc.setFontSize(12);
+        doc.text(`تاريخ الإنشاء: ${new Date().toLocaleDateString('ar-EG')}`, 40, 70);
+        
+        // الجدول
+        doc.autoTable({
+            html: '#reportContent table',
+            startY: 90,
+            styles: { fontSize: 10, cellPadding: 3, halign: 'center' },
+            headStyles: { fillColor: [52, 152, 219] }
+        });
+        
+        doc.save('تقرير_المشتريات.pdf');
+    }
+
+    // طباعة التقرير
+    printReport() {
+        if (!this.dom.reportContent || this.dom.reportContent.style.display === 'none') {
+            this.showError('⚠️ يرجى إنشاء التقرير أولاً قبل الطباعة');
+            return;
+        }
+        window.print();
+    }
+
+    // دوال مساعدة للرسائل
+    showError(message) {
+        alert(`❌ ${message}`);
+    }
+
+    showSuccess(message) {
+        alert(`✅ ${message}`);
+    }
+
+    showInfo(message) {
+        alert(`ℹ️ ${message}`);
+    }
+}
+
+// تهيئة التطبيق
+const app = new PurchaseReportApp();
+</script>
+</body>
+</html>

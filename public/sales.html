@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>🧾 شاشة المبيعات</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="styleSales.css">
+   <style>
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .connection-status.supabase {
+            border-left: 4px solid #28a745;
+        }
+        .connection-status.local {
+            border-left: 4px solid #dc3545;
+        }
+        .connection-status.connecting {
+            border-left: 4px solid #ffc107;
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-online {
+            background: #28a745;
+        }
+        .status-offline {
+            background: #dc3545;
+        }
+        .status-connecting {
+            background: #ffc107;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .switch-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        .switch-btn:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        .switch-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .search-box {
+            max-width: 300px;
+        }
+        .pagination {
+            margin-top: 1rem;
+        }
+        .page-btn {
+            margin: 0 2px;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+        }
+        .page-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        /* تحسينات للجوال - إضافة فقط */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+                font-size: 14px;
+            }
+            
+            .container {
+                width: 100%;
+                max-width: 100%;
+                margin: 0 auto;
+                border-radius: 8px;
+            }
+            
+            header {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.4rem;
+                margin-bottom: 10px;
+            }
+            
+            .header-info {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: center;
+                font-size: 0.85rem;
+            }
+            
+            .header-info span {
+                background: rgba(255,255,255,0.2);
+                padding: 4px 8px;
+                border-radius: 4px;
+            }
+            
+            .sales-form {
+                padding: 10px;
+            }
+            
+            .form-row {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .form-group {
+                width: 100%;
+            }
+            
+            .form-group[style*="grid-column: span 2"] {
+                width: 100%;
+            }
+            
+            .items-grid {
+                overflow-x: auto;
+            }
+            
+            .items-header, .items-footer {
+                min-width: 800px;
+            }
+            
+            #itemsList {
+                min-width: 800px;
+            }
+            
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            
+            .actions > * {
+                width: 100%;
+            }
+            
+            .actions > div {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .connection-status {
+                position: relative;
+                top: 0;
+                left: 0;
+                margin: 0 0 10px 0;
+                width: 100%;
+                justify-content: center;
+                border-radius: 0;
+                box-shadow: none;
+                border-left: none;
+                border-bottom: 3px solid #ffc107;
+            }
+            
+            .connection-status.supabase {
+                border-bottom: 3px solid #28a745;
+                border-left: none;
+            }
+            
+            .connection-status.local {
+                border-bottom: 3px solid #dc3545;
+                border-left: none;
+            }
+            
+            #userInfo {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin: 0 0 10px 0;
+                width: 100%;
+                text-align: center;
+                border-radius: 0;
+            }
+            
+            .pay-modal {
+                padding: 10px;
+            }
+            
+            .pay-box {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .pay-btns {
+                flex-direction: column;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 3px;
+                font-size: 13px;
+            }
+            
+            h1 {
+                font-size: 1.2rem;
+            }
+            
+            .header-info {
+                font-size: 0.75rem;
+            }
+            
+            .header-info span {
+                padding: 3px 6px;
+            }
+            
+            input, select, textarea {
+                padding: 8px;
+                font-size: 14px; /* لمنع التكبير التلقائي في iOS */
+            }
+            
+            .btn {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .items-header, .items-footer, #itemsList {
+                min-width: 700px;
+                font-size: 12px;
+            }
+        }
+    </style>
+   
+</head>
+
+<body>
+    <!-- شريط حالة الاتصال مع زر التبديل -->
+    <div id="connectionStatus" class="connection-status connecting">
+        <div class="status-indicator status-connecting"></div>
+        <span id="statusText">جاري الاتصال...</span>
+        <button id="switchConnectionBtn" class="switch-btn" onclick="switchConnectionMode()" disabled>
+            <i class="fas fa-sync-alt"></i> تبديل الاتصال
+        </button>
+    </div>
+
+    <!-- تم نقل userInfo من head إلى body -->
+    <div id="userInfo" class="user-info" style="position: fixed; top: 10px; right: 10px; background: rgba(255,255,255,0.95); padding: 8px 12px; border-radius: 5px; font-weight: bold; z-index: 1000; border: 1px solid #ccc;"></div>
+
+    <div class="container">
+        <header>
+            <h1>🛒 نظام المبيعات - إدارة المبيعات</h1>
+            <div class="header-info">
+                <span id="currentUser">المستخدم: --</span>
+                <span id="storeInfo">الفرع: --</span>
+                <span id="dateInfo">التاريخ: --</span>
+                <span id="invoiceInfo">فاتورة رقم: <span id="invoiceNumber">-</span></span>
+            </div>
+        </header>
+
+        <form id="salesForm" class="sales-form" autocomplete="off">
+            <!-- الصف الأول: تاريخ البيع + الفرع -->
+            <div class="form-row" style="grid-column: 1 / -1;">
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>تاريخ البيع</label>
+                    <input type="datetime-local" id="tran_date" required>
+                </div>
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>الفرع</label>
+                    <select id="store_id">
+                        <option value="">اختر الفرع</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- الصف الثاني: العميل، رقم الفاتورة، نوع البيع، نوع السعر، نوع الوحدة -->
+            <div class="form-row" style="grid-column: 1 / -1;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>العميل</label>
+                    <select id="customer_id">
+                        <option value="">-- نقدي --</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>رقم الفاتورة</label>
+                    <input type="text" id="invoice_id" required>
+                </div>
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>نوع البيع</label>
+                    <select id="sale_type" required>
+                        <option value="بيع">بيع</option>
+                        <option value="مرتجع">مرتجع</option>
+                        <option value="عينة">عينة</option>
+                        <option value="مسودة">مسودة</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>نوع السعر</label>
+                    <select id="price_type" required>
+                        <option value="سعر1">سعر1</option>
+                        <option value="سعر2">سعر2</option>
+                        <option value="سعر3">سعر3</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>نوع الوحدة</label>
+                    <select id="unit_type">
+                        <option value="قطعة">قطعة</option>
+                        <option value="علبة">علبة</option>
+                        <option value="كرتونة">كرتونة</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- الصف الثالث: كود الصنف (منتصف) -->
+            <div class="form-row" style="grid-column: 1 / -1; justify-content: center;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>كود الصنف / الباركود</label>
+                    <div class="search-container">
+                        <input type="text" id="item_id" placeholder="أدخل كود الصنف أو الباركود" required>
+                        <div id="searchResults" class="search-results" style="display:none"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="separator">/</div>
+
+            <!-- معلومات المخزون (تظهر عند اختيار صنف) -->
+            <div id="inventoryInfo" style="display:none;grid-column:1/-1;padding:8px;background:#f8fcff;border-radius:8px">
+                <strong>📊 معلومات المخزون:</strong>
+                <span id="stockInfo">الرصيد: -</span> |
+                <span id="batchInfo">تشغيلة: -</span> |
+                <span id="expiryInfo">صلاحية: -</span>
+            </div>
+            
+            <!-- جدول الأصناف المضافة -->
+            <div class="items-grid" style="grid-column:1/-1">
+                <h4>📋 الأصناف المضافة</h4>
+                <div class="items-header" style="display: grid; grid-template-columns: 40px 1fr 100px 80px 90px 100px 100px 80px; align-items: center; gap: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px;">
+                    <div>#</div>
+                    <div>الصنف</div>
+                    <div>الوحدة</div>
+                    <div>الكمية</div>
+                    <div>السعر</div>
+                    <div>الإجمالي</div>
+                    <div>الخصم</div>
+                    <div>إجراءات</div>
+                </div>
+                <div id="itemsList"></div>
+                <div style="display: grid; grid-template-columns: 40px 1fr 100px 80px 90px 100px 100px 80px; align-items: center; gap: 8px; padding: 8px; background: #eaf3ff; font-weight: 800;">
+                    <div></div>
+                    <div>المجموع الكلي</div>
+                    <div></div>
+                    <div id="sumQty">0</div>
+                    <div id="sumPrice">0.00</div>
+                    <div id="sumTotal">0.00</div>
+                    <div id="sumDiscount">0.00</div>
+                    <div></div>
+                </div>
+            </div>
+
+            <!-- ملخص الدفع -->
+            <div class="form-row" style="grid-column:1/-1; background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                <div class="form-group">
+                    <label>الخصم الإجمالي</label>
+                    <input type="number" id="discountAll" step="0.01" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>المبلغ المدفوع</label>
+                    <input type="number" id="paid_amount" step="0.01" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>الباقي</label>
+                    <input type="text" id="changeAmount" value="0.00" readonly style="background: #f0f0f0;">
+                </div>
+                <div class="form-group-large">
+                    <label>ملاحظات</label>
+                    <textarea id="remarks" rows="2" placeholder="ملاحظات..."></textarea>
+                </div>
+            </div>
+
+            <!-- أزرار التحكم -->
+            <div class="actions" style="grid-column:1/-1; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 15px 0;">
+                <button type="button" id="newInvoiceBtn" class="btn-secondary">🆕 فاتورة جديدة</button>
+                <button type="button" id="saveDraftBtn" class="btn-secondary">💾 حفظ مسودة</button>
+                <button type="submit" id="completeSaleBtn" class="btn-primary">✅ إتمام البيع</button>
+                <button type="button" id="printInvoiceBtn" class="btn-secondary" style="display:none">🖨️ طباعة</button>
+                <button type="button" id="cancelSaleBtn" class="btn-danger">❌ إلغاء</button>
+
+                <!-- استيراد وتصدير -->
+                <input type="file" id="importInput" accept=".xlsx,.xls" style="display: none;">
+                <button type="button" id="exportBtn" class="btn-secondary">📤 تصدير</button>
+                <button type="button" onclick="document.getElementById('importInput').click()" class="btn-secondary">📥 استيراد</button>
+
+                <!-- إعدادات الطباعة -->
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label>نوع الورق:</label>
+                    <select id="paper_type">
+                        <option value="58">58 mm</option>
+                        <option value="80">80 mm</option>
+                    </select>
+
+                    <label>الطابعة:</label>
+                    <select id="printer_name"></select>
+                </div>
+            </div>
+        </form>
+
+        <div id="toast" class="toast"></div>
+        <div id="alertBox" class="alert-box"></div>
+    </div>
+
+    <div id="search-dropdown" class="dropdown-list"></div>
+
+    <div id="paymentModal" class="pay-modal">
+        <div class="pay-box">
+            <h2>تأكيد الدفع</h2>
+
+            <div class="pay-row">
+                <label>الصافي بعد الخصم</label>
+                <div id="finalAmount" class="pay-display"></div>
+            </div>
+
+            <div class="pay-row">
+                <label>المبلغ المدفوع</label>
+                <input type="number" id="modalPaid" class="pay-input" placeholder="0.00">
+            </div>
+
+            <div class="pay-row">
+                <label>المتبقي</label>
+                <div id="modalRemaining" class="pay-display"></div>
+            </div>
+
+            <div class="pay-btns">
+                <button class="pay-confirm" id="confirmPaymentBtn">تأكيد</button>
+                <button class="pay-cancel" onclick="document.getElementById('paymentModal').style.display='none'">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحميل المكتبات - مرة واحدة فقط -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"></script>
+    
+    <!-- إضافة الدوال الخاصة بنظام التبديل -->
+    <script>
+        // ⚡ التهيئة العالمية
+        const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+
+        let supabase;
+
+        // ✅ الحصول على وضع الاتصال الحالي
+        function getConnectionMode() {
+            return localStorage.getItem('connection_mode') || 
+                    sessionStorage.getItem('connection_mode') || 
+                    'auto';
+        }
+
+        // ✅ تحديث شريط حالة الاتصال
+        function updateConnectionStatus() {
+            const statusDiv = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            const switchBtn = document.getElementById('switchConnectionBtn');
+            const mode = getConnectionMode();
+            
+            switchBtn.disabled = false;
+            
+            if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+                statusDiv.className = 'connection-status supabase';
+                statusText.innerHTML = '🌐 Supabase مباشر';
+            } else {
+                statusDiv.className = 'connection-status local';
+                statusText.innerHTML = '🔗 اتصال محلي';
+            }
+        }
+
+        // ✅ تبديل وضع الاتصال
+        function switchConnectionMode() {
+            const currentMode = getConnectionMode();
+            const newMode = currentMode === 'supabase' ? 'local' : 'supabase';
+            
+            localStorage.setItem('connection_mode', newMode);
+            sessionStorage.setItem('connection_mode', newMode);
+            
+            updateConnectionStatus();
+            
+            // إظهار تأكيد التبديل
+            showToast(`🔄 تم التبديل إلى: ${newMode === 'supabase' ? 'Supabase مباشر' : 'الاتصال المحلي'}`, 'success');
+            
+            // إعادة تحميل البيانات إذا لزم الأمر
+            if (typeof loadData === 'function') {
+                loadData();
+            }
+        }
+
+        // ✅ تهيئة Supabase
+        function initializeSupabase() {
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✅ Supabase initialized');
+                return true;
+            } catch (error) {
+                console.error('❌ Failed to initialize Supabase:', error);
+                return false;
+            }
+        }
+
+        // ✅ دالة مساعدة لإظهار الإشعارات
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            if (toast) {
+                toast.textContent = message;
+                toast.className = `toast ${type}`;
+                toast.style.display = 'block';
+                
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 3000);
+            } else {
+                alert(message);
+            }
+        }
+
+        // ✅ تهيئة نظام الاتصال عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // تهيئة Supabase
+            initializeSupabase();
+            
+            // تحديث حالة الاتصال
+            updateConnectionStatus();
+            
+            // تمكين زر التبديل بعد التهيئة
+            setTimeout(() => {
+                const switchBtn = document.getElementById('switchConnectionBtn');
+                if (switchBtn) {
+                    switchBtn.disabled = false;
+                }
+            }, 1000);
+        });
+    </script>
+    
+    <script src="./sales.js"></script>
+</body>
+</html>

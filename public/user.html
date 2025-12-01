@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>👥 إدارة المستخدمين</title>
+  <style>
+    :root {
+      --primary: #5d7fe3;
+      --primary-dark: #4a6bd4;
+      --primary-light: #f0f4ff;
+      --secondary: #8a5bd6;
+      --success: #4cc9f0;
+      --warning: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --border: #dee2e6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e6ecff 0%, #f0f4ff 100%);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 15px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #5d7fe3 0%, #8a5bd6 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px 12px 0 0;
+      margin-bottom: 0;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.9rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      transition: var(--transition);
+      background-color: var(--light);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(93, 127, 227, 0.2);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #7a4bc4;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .form-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      min-width: 600px;
+    }
+
+    th {
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 10px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
+    tr:hover {
+      background-color: rgba(93, 127, 227, 0.05);
+    }
+
+    .actions {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 4px 6px;
+      border-radius: 5px;
+      transition: var(--transition);
+    }
+
+    .actions button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+      transform: scale(1.1);
+    }
+
+    .status-active {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .status-inactive {
+      color: #dc3545;
+      font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .header {
+        padding: 15px;
+      }
+      
+      h2 {
+        font-size: 1.4rem;
+      }
+      
+      .card {
+        padding: 15px;
+      }
+      
+      .main-content {
+        gap: 15px;
+      }
+      
+      th, td {
+        padding: 8px 6px;
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        border-radius: 8px 8px 0 0;
+      }
+      
+      h2 {
+        font-size: 1.2rem;
+      }
+      
+      .card {
+        padding: 12px;
+        border-radius: 8px;
+      }
+      
+      input, select {
+        padding: 8px 10px;
+      }
+      
+      .btn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>👥 إدارة المستخدمين</h2>
+    </div>
+
+    <div class="main-content">
+      <div class="card">
+        <form id="userForm">
+          <input type="hidden" id="user_id">
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="username">اسم المستخدم:</label>
+              <input type="text" id="username" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="password">كلمة المرور:</label>
+              <input type="password" id="password" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="full_name">الاسم الكامل:</label>
+              <input type="text" id="full_name">
+            </div>
+            
+            <div class="form-group">
+              <label for="role">الدور:</label>
+              <select id="role" required>
+                <option value="">اختر الدور...</option>
+                <option value="admin">مدير</option>
+                <option value="user">مستخدم</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="store_id">رقم الفرع:</label>
+              <input type="number" id="store_id" placeholder="أدخل رقم الفرع">
+            </div>
+            
+            <div class="form-group">
+              <label for="store_list">اختر الفرع:</label>
+              <select id="store_list">
+                <option value="">اختر الفرع...</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="active">نشط؟</label>
+              <select id="active">
+                <option value="true">نعم</option>
+                <option value="false">لا</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" onclick="saveUser()" class="btn btn-primary">💾 حفظ</button>
+            <button type="button" onclick="resetForm()" class="btn btn-outline">🧹 جديد</button>
+            <button type="button" onclick="loadUsers()" class="btn btn-secondary">🔄 تحديث القائمة</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="table-container">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>الكود</th>
+                <th>اسم المستخدم</th>
+                <th>الاسم الكامل</th>
+                <th>الدور</th>
+                <th>الفرع</th>
+                <th>نشط</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ تصحيح الروابط - استخدام البورت 3000 بدلاً من 3001
+    const API_USERS = "http://localhost:3000/api/usersbk";
+    const API_STORES = "http://localhost:3000/api/stores";
+
+    // 🟢 تحميل أسماء الفروع في القائمة
+    async function loadStores() {
+      try {
+        const res = await fetch(API_STORES);
+        if (!res.ok) throw new Error(`خطأ في الشبكة: ${res.status}`);
+        const stores = await res.json();
+        const select = document.getElementById("store_list");
+        select.innerHTML = '<option value="">اختر الفرع...</option>';
+        stores.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s.store_id;
+          opt.textContent = `${s.store_id} - ${s.store_name}`;
+          select.appendChild(opt);
+        });
+      } catch (error) {
+        console.error("خطأ في تحميل الفروع:", error);
+        alert("⚠️ تعذر تحميل قائمة الفروع. تأكد من تشغيل السيرفر.");
+      }
+    }
+
+    // 🟢 تحميل المستخدمين في الجدول
+    async function loadUsers() {
+      try {
+        const res = await fetch(API_USERS);
+        if (!res.ok) throw new Error(`خطأ في الشبكة: ${res.status}`);
+        const users = await res.json();
+        const tbody = document.querySelector("#usersTable tbody");
+        tbody.innerHTML = "";
+        users.forEach(u => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${u.user_id}</td>
+            <td>${u.username}</td>
+            <td>${u.full_name || ""}</td>
+            <td>${u.role || ""}</td>
+            <td>${u.store_name || u.store_id || ""}</td>
+            <td class="${u.active ? 'status-active' : 'status-inactive'}">${u.active ? "✅ نعم" : "❌ لا"}</td>
+            <td class="actions">
+              <button onclick="editUser(${u.user_id})" title="تعديل">✏️</button>
+              <button onclick="deleteUser(${u.user_id})" title="حذف">🗑️</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (error) {
+        console.error("خطأ في تحميل المستخدمين:", error);
+        alert("⚠️ تعذر تحميل قائمة المستخدمين. تأكد من تشغيل السيرفر.");
+      }
+    }
+
+    // 🟢 إضافة أو تعديل مستخدم
+    async function saveUser() {
+      const user = {
+        user_id: document.getElementById("user_id").value,
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value,
+        full_name: document.getElementById("full_name").value,
+        role: document.getElementById("role").value,
+        store_id: document.getElementById("store_id").value || document.getElementById("store_list").value,
+        active: document.getElementById("active").value === "true"
+      };
+
+      if (!user.username || !user.password) {
+        alert("⚠️ أدخل اسم المستخدم وكلمة المرور.");
+        return;
+      }
+
+      try {
+        const method = user.user_id ? "PUT" : "POST";
+        const url = user.user_id ? `${API_USERS}/${user.user_id}` : API_USERS;
+
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(user)
+        });
+
+        if (!res.ok) throw new Error(`خطأ في الشبكة: ${res.status}`);
+        
+        const result = await res.json();
+        alert("✅ تم حفظ المستخدم بنجاح");
+        resetForm();
+        loadUsers();
+      } catch (error) {
+        console.error("خطأ في حفظ المستخدم:", error);
+        alert("⚠️ حدث خطأ أثناء حفظ المستخدم. تأكد من تشغيل السيرفر.");
+      }
+    }
+
+    // 🟢 تعبئة البيانات عند التعديل
+    async function editUser(id) {
+      try {
+        const res = await fetch(`${API_USERS}/${id}`);
+        if (!res.ok) throw new Error(`خطأ في الشبكة: ${res.status}`);
+        const u = await res.json();
+        document.getElementById("user_id").value = u.user_id;
+        document.getElementById("username").value = u.username;
+        document.getElementById("password").value = u.password;
+        document.getElementById("full_name").value = u.full_name || "";
+        document.getElementById("role").value = u.role || "";
+        document.getElementById("store_id").value = u.store_id || "";
+        document.getElementById("store_list").value = u.store_id || "";
+        document.getElementById("active").value = u.active ? "true" : "false";
+        document.getElementById("username").focus();
+      } catch (error) {
+        console.error("خطأ في تحميل بيانات المستخدم:", error);
+        alert("⚠️ تعذر تحميل بيانات المستخدم.");
+      }
+    }
+
+    // 🟢 حذف مستخدم
+    async function deleteUser(id) {
+      if (!confirm("هل تريد حذف المستخدم؟")) return;
+      try {
+        const res = await fetch(`${API_USERS}/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error(`خطأ في الشبكة: ${res.status}`);
+        loadUsers();
+        alert("✅ تم حذف المستخدم بنجاح");
+      } catch (error) {
+        console.error("خطأ في حذف المستخدم:", error);
+        alert("⚠️ حدث خطأ أثناء حذف المستخدم.");
+      }
+    }
+
+    // 🟢 إعادة تعيين النموذج
+    function resetForm() {
+      document.getElementById("user_id").value = "";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+      document.getElementById("full_name").value = "";
+      document.getElementById("role").value = "";
+      document.getElementById("store_id").value = "";
+      document.getElementById("store_list").value = "";
+      document.getElementById("active").value = "true";
+      document.getElementById("username").focus();
+    }
+
+    // 🟢 إدخال رقم الفرع يعرض الاسم في القائمة
+    document.getElementById("store_id").addEventListener("change", () => {
+      const id = document.getElementById("store_id").value;
+      document.getElementById("store_list").value = id;
+    });
+
+    // 🟢 اختيار الفرع من القائمة يعبئ رقم الفرع
+    document.getElementById("store_list").addEventListener("change", () => {
+      const id = document.getElementById("store_list").value;
+      document.getElementById("store_id").value = id;
+    });
+
+    // 🟢 التنقل بمفتاح Enter
+    document.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const inputs = [...document.querySelectorAll("input, select")];
+        const i = inputs.indexOf(document.activeElement);
+        if (i >= 0 && i < inputs.length - 1) {
+          inputs[i + 1].focus();
+        } else if (i === inputs.length - 1) {
+          saveUser();
+        }
+      }
+    });
+
+    // 🟢 التحميل الأولي للصفحة
+    document.addEventListener("DOMContentLoaded", () => {
+      loadStores();
+      loadUsers();
+      document.getElementById("username").focus();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 نظام عروض الأسعار - إدارة العروض والتخفيضات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    
+    <style>
+        
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --info: #4895ef;
+            --warning: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --border: #e9ecef;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            direction: rtl;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 300;
+            position: relative;
+            z-index: 2;
+        }
+
+        .main-content {
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            width: 100%;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--info), var(--success));
+            color: white;
+            padding: 15px 20px;
+            border-radius: var(--radius) var(--radius) 0 0;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+            width: 100%;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            background: var(--light);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            min-width: 1000px;
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--info), var(--success));
+            color: white;
+            padding: 12px 10px;
+            text-align: center;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        tr:hover td {
+            background: rgba(67, 97, 238, 0.05);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: rgba(40, 167, 69, 0.15);
+            color: #28a745;
+        }
+
+        .status-expired {
+            background: rgba(220, 53, 69, 0.15);
+            color: #dc3545;
+        }
+
+        .price-highlight {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            min-width: 60px;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+            width: 100%;
+        }
+
+        .no-data i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        .no-data h3 {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 3px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        /* تحسينات للتجاوب */
+        @media (max-width: 1200px) {
+            .container {
+                margin: 5px;
+            }
+            
+            .main-content {
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+                align-items: stretch;
+            }
+
+            .container {
+                border-radius: 8px;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .main-content {
+                padding: 10px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .card-body {
+                padding: 15px;
+            }
+
+            .btn-group {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .stat-card {
+                padding: 12px;
+            }
+
+            .stat-value {
+                font-size: 1.3rem;
+            }
+
+            .table-header {
+                padding: 12px 15px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.3rem;
+            }
+
+            .header .subtitle {
+                font-size: 0.9rem;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+
+            .card-header {
+                padding: 12px 15px;
+                font-size: 1rem;
+            }
+
+            .form-control {
+                padding: 8px 10px;
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+
+            .no-data {
+                padding: 30px 15px;
+            }
+
+            .no-data h3 {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .header {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .main-content {
+                padding: 8px;
+            }
+
+            .card-body {
+                padding: 12px;
+            }
+        }
+
+        /* تخصيص شريط التمرير */
+        .table-wrapper::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+        }
+
+        /* تأثيرات دخول */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* تحسينات للأجهزة الصغيرة جداً */
+        @media (max-height: 600px) {
+            body {
+                align-items: flex-start;
+            }
+            
+            .container {
+                margin-top: 5px;
+            }
+        }
+
+        /* ضبط الارتفاعات للتجاوب */
+        .main-content {
+            min-height: auto;
+        }
+
+        .table-container {
+            max-height: 400px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-wrapper {
+            flex: 1;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+
+        .connection-status {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-size: 12px;
+        }
+        .connection-status.supabase {
+        border-left: 4px solid #28a745;
+        }
+        .connection-status.local {
+        border-left: 4px solid #dc3545;
+        }
+        .loading {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+        }
+        @keyframes spin {
+        to { transform: rotate(360deg); }
+        }
+        .switch-btn {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        margin-left: 10px;
+        font-size: 12px;
+        }
+        .switch-btn:hover {
+        background: #5a6268;
+        }
+  </style>
+</head>
+<body>
+    <div class="container fade-in">
+        <!-- الرأس -->
+        <div class="header">
+            <h1><i class="fas fa-tags"></i> نظام عروض الأسعار</h1>
+            <div class="subtitle">إدارة العروض والتخفيضات بكل سهولة واحترافية</div>
+        </div>
+
+        <!-- المحتوى الرئيسي -->
+        <div class="main-content">
+            <!-- بطاقة الإحصائيات -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-tag text-primary"></i></div>
+                    <div class="stat-value" id="totalOffers">0</div>
+                    <div class="stat-label">إجمالي العروض</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-bolt text-success"></i></div>
+                    <div class="stat-value" id="activeOffers">0</div>
+                    <div class="stat-label">عروض نشطة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-clock text-warning"></i></div>
+                    <div class="stat-value" id="expiredOffers">0</div>
+                    <div class="stat-label">عروض منتهية</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-store text-info"></i></div>
+                    <div class="stat-value" id="totalStores">0</div>
+                    <div class="stat-label">الفروع</div>
+                </div>
+            </div>
+
+            <!-- بطاقة إضافة العرض -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle"></i>
+                    إضافة عرض جديد
+                </div>
+                <div class="card-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="store_id">
+                                <i class="fas fa-store"></i> الفرع
+                            </label>
+                            <select class="form-control" id="store_id" required>
+                                <option value="">اختر الفرع...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="item_id">
+                                <i class="fas fa-cube"></i> الصنف
+                            </label>
+                            <select class="form-control" id="item_id" required>
+                                <option value="">اختر الصنف...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="offer_price1">
+                                <i class="fas fa-tag"></i> سعر العرض 1
+                            </label>
+                            <input type="number" class="form-control" id="offer_price1" step="0.01" placeholder="أدخل السعر...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="offer_price2">
+                                <i class="fas fa-tags"></i> سعر العرض 2
+                            </label>
+                            <input type="number" class="form-control" id="offer_price2" step="0.01" placeholder="أدخل السعر...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="offer_price3">
+                                <i class="fas fa-star"></i> سعر العرض 3
+                            </label>
+                            <input type="number" class="form-control" id="offer_price3" step="0.01" placeholder="أدخل السعر...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="startDate">
+                                <i class="fas fa-calendar-alt"></i> تاريخ البداية
+                            </label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="endDate">
+                                <i class="fas fa-calendar-times"></i> تاريخ النهاية
+                            </label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="addOfferBtn">
+                            <i class="fas fa-plus"></i> إضافة العرض
+                        </button>
+                        <button class="btn btn-secondary" id="clearBtn">
+                            <i class="fas fa-broom"></i> مسح الحقول
+                        </button>
+                        <button class="btn btn-success" id="refreshBtn">
+                            <i class="fas fa-sync-alt"></i> تحديث البيانات
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول العروض -->
+            <div class="table-container">
+                <div class="table-header">
+                    <i class="fas fa-list"></i>
+                    قائمة العروض الحالية
+                </div>
+                <div class="table-wrapper">
+                    <div id="offersData">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>الفرع</th>
+                                    <th>الصنف</th>
+                                    <th>سعر العرض 1</th>
+                                    <th>سعر العرض 2</th>
+                                    <th>سعر العرض 3</th>
+                                    <th>تاريخ البداية</th>
+                                    <th>تاريخ النهاية</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="10">
+                                        <div class="no-data">
+                                            <i class="fas fa-inbox"></i>
+                                            <h3>لا توجد عروض حالية</h3>
+                                            <p>قم بإضافة عرض جديد لبدء إدارة العروض والتخفيضات</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="./offers.js"></script>
+    <script type="module" src="./config.js"></script>
+
+
+</body>
+</html>

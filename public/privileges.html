@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔐 صلاحيات المستخدمين</title>
+  <link rel="icon" href="data:,">
+  <!-- تحميل ملفات الإعداد أولاً -->
+  <script src="./config-env.js"></script>
+  <script src="./config.js"></script>
+  <!-- إضافة Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- إضافة Font Awesome للرموز -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #5d7fe3;
+      --primary-dark: #4a6bd4;
+      --primary-light: #f0f4ff;
+      --secondary: #8a5bd6;
+      --success: #4cc9f0;
+      --warning: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --border: #dee2e6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e6ecff 0%, #f0f4ff 100%);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 16px 16px 0 0;
+      margin-bottom: 0;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    h2 {
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 0;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 25px;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 25px;
+      transition: var(--transition);
+      border: 1px solid var(--border);
+    }
+
+    .card:hover {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 1rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: var(--transition);
+      background-color: var(--light);
+      font-family: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(93, 127, 227, 0.2);
+      background-color: white;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      min-width: 120px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(93, 127, 227, 0.3);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, var(--secondary) 0%, #7a4bc4 100%);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(138, 91, 214, 0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      background: white;
+      margin-top: 25px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      min-width: 600px;
+    }
+
+    th {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 16px 12px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+      text-align: right;
+    }
+
+    tr:hover {
+      background-color: rgba(93, 127, 227, 0.05);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: var(--transition);
+    }
+
+    .actions button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+      transform: scale(1.1);
+    }
+
+    .edit-btn {
+      color: var(--primary);
+    }
+
+    .delete-btn {
+      color: var(--warning);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+
+    /* شريط الاتصال */
+    .connection-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-size: 12px;
+      border-left: 4px solid #28a745;
+    }
+
+    .loading-spinner {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+    }
+
+    .search-box {
+      max-width: 300px;
+      margin-bottom: 15px;
+    }
+
+    /* تحسينات لل checkboxes */
+    .permissions-container {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 10px 0;
+      border: 1px solid var(--border);
+    }
+
+    .permissions-container label {
+      display: inline-block;
+      margin: 8px 15px 8px 0;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .permissions-container input[type="checkbox"] {
+      margin-left: 5px;
+      cursor: pointer;
+      transform: scale(1.2);
+    }
+
+    /* تحسينات للجوال */
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+      
+      .header {
+        padding: 20px;
+        border-radius: 12px 12px 0 0;
+      }
+      
+      h2 {
+        font-size: 1.6rem;
+      }
+      
+      .card {
+        padding: 20px;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
+      
+      th, td {
+        padding: 12px 8px;
+      }
+
+      .permissions-container label {
+        display: block;
+        margin: 10px 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        border-radius: 10px 10px 0 0;
+      }
+      
+      h2 {
+        font-size: 1.4rem;
+      }
+      
+      .card {
+        padding: 15px;
+        border-radius: 12px;
+      }
+      
+      input, select {
+        padding: 12px 14px;
+      }
+      
+      .btn {
+        padding: 12px 20px;
+      }
+
+      .permissions-container {
+        padding: 10px;
+      }
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card, .table-container {
+      animation: fadeIn 0.5s ease;
+    }
+
+    /* تحسينات إضافية */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .status-online {
+      background-color: rgba(76, 201, 240, 0.2);
+      color: #4cc9f0;
+    }
+
+    .status-offline {
+      background-color: rgba(247, 37, 133, 0.2);
+      color: #f72585;
+    }
+
+    .search-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .search-box {
+      position: relative;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .search-box input {
+      padding-right: 40px;
+    }
+
+    .search-box i {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray);
+    }
+  </style>
+</head>
+<body>
+  <!-- شريط حالة الاتصال -->
+  <div id="connectionStatus" class="connection-status">
+    <i class="fas fa-spinner fa-spin"></i> جاري التحميل...
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h2><i class="fas fa-user-shield"></i> شاشة صلاحيات المستخدمين</h2>
+    </div>
+
+    <div class="main-content">
+      <!-- نموذج الصلاحيات -->
+      <div class="card">
+        <h4 class="mb-4"><i class="fas fa-plus-circle"></i> إضافة صلاحية جديدة</h4>
+        <form id="priv-form">
+          <input type="hidden" id="priv_id">
+
+          <div class="form-group">
+            <label for="user_id"><i class="fas fa-user"></i> المستخدم</label>
+            <select id="user_id"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="priv_name"><i class="fas fa-desktop"></i> اسم الشاشة</label>
+            <select id="priv_name">
+              <option value="">جارِ تحميل الشاشات...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="description"><i class="fas fa-file-alt"></i> الوصف</label>
+            <input type="text" id="description" placeholder="وصف مختصر">
+          </div>
+
+          <div class="form-group">
+            <label>الصلاحيات:</label>
+            <div class="permissions-container">
+              <label><input type="checkbox" id="select_all"> <i class="fas fa-check-double"></i> تحديد كل الصلاحيات</label>
+              <label><input type="checkbox" id="can_view"> <i class="fas fa-eye"></i> عرض</label>
+              <label><input type="checkbox" id="can_add"> <i class="fas fa-plus"></i> إضافة</label>
+              <label><input type="checkbox" id="can_edit"> <i class="fas fa-edit"></i> تعديل</label>
+              <label><input type="checkbox" id="can_delete"> <i class="fas fa-trash"></i> حذف</label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" onclick="savePrivilege()" class="btn btn-primary">
+              <i class="fas fa-save"></i> حفظ
+            </button>
+            <button type="button" onclick="loadPrivileges()" class="btn btn-secondary">
+              <i class="fas fa-sync"></i> عرض
+            </button>
+            <button type="button" onclick="resetForm()" class="btn btn-outline">
+              <i class="fas fa-broom"></i> جديد
+            </button>
+            <button type="button" onclick="syncScreens()" class="btn btn-outline">
+              <i class="fas fa-sync-alt"></i> مزامنة
+            </button>
+            <button type="button" onclick="switchConnectionMode()" class="btn btn-outline">
+              <i class="fas fa-exchange-alt"></i> تبديل
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- جدول الصلاحيات -->
+      <div class="card">
+        <h4 class="mb-4"><i class="fas fa-list"></i> قائمة الصلاحيات</h4>
+        
+        <div class="search-container">
+          <div class="search-box">
+            <input type="text" id="searchBox" placeholder="🔍 بحث عن مستخدم أو شاشة..." oninput="filterTable()">
+            <i class="fas fa-search"></i>
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <table id="privTable">
+            <thead>
+              <tr>
+                <th>المستخدم</th>
+                <th>الشاشة</th>
+                <th>عرض</th>
+                <th>إضافة</th>
+                <th>تعديل</th>
+                <th>حذف</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="7" class="empty-state">
+                  <div><i class="fas fa-inbox"></i></div>
+                  <p>لا توجد صلاحيات مسجلة بعد</p>
+                  <small>قم بإضافة صلاحية جديدة باستخدام النموذج</small>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ⚡ التهيئة العالمية
+    const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+    
+    let supabase;
+    let currentMode = 'auto';
+
+    // ✅ تهيئة تحكم الصلاحيات
+    function initializePermissionsControl() {
+        console.log('🔧 تهيئة تحكم الصلاحيات...');
+        
+        const selectAll = document.getElementById('select_all');
+        const checkboxes = [
+            document.getElementById('can_view'),
+            document.getElementById('can_add'),
+            document.getElementById('can_edit'),
+            document.getElementById('can_delete')
+        ];
+
+        // إضافة مستمع حدث لتحديد الكل
+        selectAll.addEventListener('change', function() {
+            console.log('🔄 تغيير حالة تحديد الكل:', this.checked);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectAllState();
+        });
+
+        // إضافة مستمعات الأحداث للcheckboxes الفردية
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                console.log('🔄 تغيير صلاحية:', this.id, this.checked);
+                updateSelectAllState();
+            });
+        });
+
+        console.log('✅ تم تهيئة تحكم الصلاحيات بنجاح');
+    }
+
+    // ✅ تحديث حالة "تحديد الكل"
+    function updateSelectAllState() {
+        const checkboxes = [
+            document.getElementById('can_view'),
+            document.getElementById('can_add'),
+            document.getElementById('can_edit'),
+            document.getElementById('can_delete')
+        ];
+        
+        const allChecked = checkboxes.every(checkbox => checkbox.checked);
+        const someChecked = checkboxes.some(checkbox => checkbox.checked);
+        
+        const selectAll = document.getElementById('select_all');
+        selectAll.checked = allChecked;
+        selectAll.indeterminate = !allChecked && someChecked;
+        
+        console.log('📊 حالة الصلاحيات:', {
+            selectAll: selectAll.checked,
+            indeterminate: selectAll.indeterminate,
+            view: checkboxes[0].checked,
+            add: checkboxes[1].checked,
+            edit: checkboxes[2].checked,
+            delete: checkboxes[3].checked
+        });
+    }
+
+    // ✅ الحصول على وضع الاتصال الحالي
+    function getConnectionMode() {
+        return localStorage.getItem('connection_mode') || 
+               sessionStorage.getItem('connection_mode') || 
+               'auto';
+    }
+
+    // ✅ تحديث شريط حالة الاتصال
+    function updateConnectionStatus() {
+        const statusDiv = document.getElementById('connectionStatus');
+        const mode = getConnectionMode();
+        
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            statusDiv.innerHTML = '<i class="fas fa-cloud-check"></i> Supabase مباشر';
+            statusDiv.className = 'connection-status supabase';
+        } else {
+            statusDiv.innerHTML = '<i class="fas fa-server"></i> اتصال محلي';
+            statusDiv.className = 'connection-status local';
+        }
+    }
+
+    // ✅ تبديل وضع الاتصال
+    function switchConnectionMode() {
+        const currentMode = getConnectionMode();
+        const newMode = currentMode === 'supabase' ? 'local' : 'supabase';
+        
+        localStorage.setItem('connection_mode', newMode);
+        sessionStorage.setItem('connection_mode', newMode);
+        
+        updateConnectionStatus();
+        alert(`🔄 تم التبديل إلى: ${newMode === 'supabase' ? 'Supabase مباشر' : 'الاتصال المحلي'}`);
+        
+        // إعادة تحميل البيانات
+        loadUsers();
+        loadPrivileges();
+    }
+
+    // ✅ تهيئة Supabase
+    function initializeSupabase() {
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log('✅ Supabase initialized');
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to initialize Supabase:', error);
+            return false;
+        }
+    }
+
+    // ✅ تحميل المستخدمين (تعمل مع كلا الوضعين)
+    async function loadUsers() {
+      const statusDiv = document.getElementById('connectionStatus');
+      statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري تحميل المستخدمين...';
+      
+      try {
+        const mode = getConnectionMode();
+        console.log(`🔄 جاري تحميل المستخدمين - الوضع: ${mode}`);
+
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            // استخدام Supabase
+            if (!supabase) initializeSupabase();
+            
+            const { data, error } = await supabase
+                .from('users')
+                .select('user_id, username')
+                .order('user_id');
+            
+            if (error) throw error;
+            
+            const select = document.getElementById("user_id");
+            select.innerHTML = '<option value="">اختر المستخدم...</option>';
+            data.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u.user_id;
+                opt.textContent = `${u.user_id} - ${u.username}`;
+                select.appendChild(opt);
+            });
+            
+            console.log(`✅ تم تحميل ${data.length} مستخدم من Supabase`);
+            statusDiv.innerHTML = `<i class="fas fa-cloud-check"></i> Supabase - ${data.length} مستخدم`;
+        } else {
+            // استخدام API التقليدي
+            const API_USERS = appConfig.get('USERS');
+            console.log('🔗 استخدام API التقليدي:', API_USERS);
+            
+            const res = await fetch(API_USERS);
+            if (!res.ok) throw new Error(`خطأ في الخادم: ${res.status}`);
+            
+            const users = await res.json();
+            const select = document.getElementById("user_id");
+            select.innerHTML = '<option value="">اختر المستخدم...</option>';
+            users.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u.user_id;
+                opt.textContent = `${u.user_id} - ${u.username}`;
+                select.appendChild(opt);
+            });
+            
+            console.log(`✅ تم تحميل ${users.length} مستخدم من الخادم المحلي`);
+            statusDiv.innerHTML = `<i class="fas fa-server"></i> اتصال محلي - ${users.length} مستخدم`;
+        }
+      } catch (err) {
+        console.error('❌ خطأ في تحميل المستخدمين:', err);
+        statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> فشل تحميل المستخدمين';
+        
+        // التحول التلقائي إلى Supabase في حالة الفشل
+        if (getConnectionMode() !== 'supabase') {
+            const switchNow = confirm('فشل الاتصال بالخادم المحلي. هل تريد التبديل إلى Supabase؟');
+            if (switchNow) {
+                localStorage.setItem('connection_mode', 'supabase');
+                loadUsers();
+            }
+        }
+      }
+    }
+
+    // ✅ تحميل أسماء الشاشات من main.html
+    async function loadScreens() {
+      try {
+        console.log('🔄 جاري تحميل الشاشات من main.html');
+        const response = await fetch('./main.html');
+        
+        if (!response.ok) {
+          throw new Error('فشل تحميل main.html');
+        }
+        
+        const htmlText = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+        const links = [...doc.querySelectorAll('.dropdown-content a')];
+        const screenSelect = document.getElementById('priv_name');
+        screenSelect.innerHTML = '<option value="">اختر الشاشة...</option>';
+        
+        // ✅ إضافة الشاشات الأساسية أولاً
+        const essentialScreens = [
+            'تحويل بين الفروع',
+            'استلام التحويل',
+            'تقرير تحويل بين الفروع',
+            'تقرير استلام التحويل'
+        ];
+        
+        essentialScreens.forEach(screen => {
+            const option = document.createElement('option');
+            option.value = screen;
+            option.textContent = screen;
+            screenSelect.appendChild(option);
+        });
+        
+        links.forEach(link => {
+          const name = link.textContent.trim();
+          if (name && !essentialScreens.includes(name)) {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            screenSelect.appendChild(option);
+          }
+        });
+        
+        console.log(`✅ تم تحميل ${links.length + essentialScreens.length} شاشة`);
+      } catch (err) {
+        console.error('❌ خطأ أثناء تحميل أسماء الشاشات:', err);
+        
+        // ✅ استخدام قائمة افتراضية في حالة الخطأ
+        const defaultScreens = [
+            'تحويل بين الفروع',
+            'استلام التحويل',
+            'تقرير تحويل بين الفروع',
+            'تقرير استلام التحويل',
+            'ادخال الاقسام',
+            'ادخال الموظفين',
+            'ادخال المرتبات',
+            'ادخال حضور وانصراف',
+            'بيانات المنشأة',
+            'بيانات الشركات',
+            'اكواد الفروع',
+            'أكواد الوحدات',
+            'أكواد الموردين',
+            'أكواد عملاء',
+            'أكواد الاصناف',
+            'بيانات الأصناف بالفروع',
+            'عروض الاسعار',
+            'إدخال المشتريات',
+            'مرتجع المشتريات',
+            'إدخال المبيعات',
+            'مرتجع المبيعات',
+            'تقرير المشتريات',
+            'تقرير مرتجع مشتريات',
+            'تقرير المبيعات',
+            'تقرير مرتجع مبيعات',
+            'تقرير حركة الفروع',
+            'تقرير جرود الفروع',
+            'اكواد الحسابات',
+            'شجرة الحسابات',
+            'حركة الحسابات',
+            'التقارير المالية',
+            'بحث بالكود او بالاسم',
+            'العروض المتاحه',
+            'ادخال مستخدم جديد للنظام',
+            'صلاحيات المستخدمين',
+            'تقرير بتعاملات النظام'
+        ];
+        
+        const screenSelect = document.getElementById('priv_name');
+        screenSelect.innerHTML = '<option value="">اختر الشاشة...</option>';
+        defaultScreens.forEach(screen => {
+            const option = document.createElement('option');
+            option.value = screen;
+            option.textContent = screen;
+            screenSelect.appendChild(option);
+        });
+      }
+    }
+
+    // ✅ تحميل الصلاحيات (تعمل مع كلا الوضعين)
+    async function loadPrivileges() {
+      const statusDiv = document.getElementById('connectionStatus');
+      statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري تحميل الصلاحيات...';
+      
+      try {
+        const mode = getConnectionMode();
+        console.log(`🔄 جاري تحميل الصلاحيات - الوضع: ${mode}`);
+
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            // استخدام Supabase
+            if (!supabase) initializeSupabase();
+            
+            const { data, error } = await supabase
+                .from('privileges')
+                .select('priv_id, user_id, priv_name, description, can_view, can_add, can_edit, can_delete')
+                .order('priv_id');
+            
+            if (error) {
+                console.error('❌ خطأ في تحميل الصلاحيات من Supabase:', error);
+                throw error;
+            }
+            
+            const tbody = document.querySelector("#privTable tbody");
+            tbody.innerHTML = "";
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div><i class="fas fa-inbox"></i></div>
+                            <p>لا توجد صلاحيات مسجلة بعد</p>
+                            <small>قم بإضافة صلاحية جديدة باستخدام النموذج</small>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // ✅ جلب أسماء المستخدمين بشكل منفصل
+            const userIds = [...new Set(data.map(p => p.user_id))];
+            const userMap = await getUserNames(userIds);
+            
+            data.forEach(p => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${userMap[p.user_id] || p.user_id}</td>
+                    <td>${p.priv_name}</td>
+                    <td>${p.can_view ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                    <td>${p.can_add ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                    <td>${p.can_edit ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                    <td>${p.can_delete ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                    <td class="actions">
+                        <button class="edit-btn" onclick="editPriv(${p.priv_id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-btn" onclick="deletePriv(${p.priv_id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            console.log(`✅ تم تحميل ${data.length} صلاحية من Supabase`);
+            statusDiv.innerHTML = `<i class="fas fa-cloud-check"></i> Supabase - ${data.length} صلاحية`;
+        } else {
+            // استخدام API التقليدي
+            const API_PRIV = appConfig.get('PRIVILEGES');
+            console.log('🔗 استخدام API التقليدي:', API_PRIV);
+            
+            const res = await fetch(API_PRIV);
+            if (!res.ok) throw new Error(`خطأ في الخادم: ${res.status}`);
+            
+            const privs = await res.json();
+            const tbody = document.querySelector("#privTable tbody");
+            tbody.innerHTML = "";
+            
+            if (privs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div><i class="fas fa-inbox"></i></div>
+                            <p>لا توجد صلاحيات مسجلة بعد</p>
+                            <small>قم بإضافة صلاحية جديدة باستخدام النموذج</small>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            privs.forEach(p => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${p.username}</td>
+                    <td>${p.priv_name}</td>
+                    <td>${p.can_view ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                    <td>${p.can_add ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                    <td>${p.can_edit ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                    <td>${p.can_delete ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                    <td class="actions">
+                        <button class="edit-btn" onclick="editPriv(${p.priv_id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-btn" onclick="deletePriv(${p.priv_id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            console.log(`✅ تم تحميل ${privs.length} صلاحية من الخادم المحلي`);
+            statusDiv.innerHTML = `<i class="fas fa-server"></i> اتصال محلي - ${privs.length} صلاحية`;
+        }
+      } catch (err) {
+        console.error('❌ خطأ في تحميل الصلاحيات:', err);
+        statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> فشل تحميل الصلاحيات';
+      }
+    }
+
+    // ✅ دالة مساعدة لجلب أسماء المستخدمين
+    async function getUserNames(userIds) {
+        try {
+            if (!supabase) initializeSupabase();
+            
+            const { data, error } = await supabase
+                .from('users')
+                .select('user_id, username')
+                .in('user_id', userIds);
+            
+            if (error) {
+                console.error('❌ خطأ في جلب أسماء المستخدمين:', error);
+                return {};
+            }
+            
+            const userMap = {};
+            data.forEach(user => {
+                userMap[user.user_id] = user.username;
+            });
+            
+            return userMap;
+        } catch (err) {
+            console.error('❌ خطأ في جلب أسماء المستخدمين:', err);
+            return {};
+        }
+    }
+
+    // ✅ حفظ الصلاحيات (تعمل مع كلا الوضعين)
+    async function savePrivilege() {
+      const priv = {
+        priv_id: document.getElementById("priv_id").value,
+        user_id: document.getElementById("user_id").value,
+        priv_name: document.getElementById("priv_name").value,
+        description: document.getElementById("description").value,
+        can_view: document.getElementById("can_view").checked,
+        can_add: document.getElementById("can_add").checked,
+        can_edit: document.getElementById("can_edit").checked,
+        can_delete: document.getElementById("can_delete").checked
+      };
+      
+      if (!priv.user_id || !priv.priv_name) {
+        alert("⚠️ يرجى تحديد المستخدم واسم الشاشة.");
+        return;
+      }
+
+      try {
+        const mode = getConnectionMode();
+        console.log(`💾 جاري حفظ الصلاحية - الوضع: ${mode}`);
+
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            // استخدام Supabase
+            if (!supabase) initializeSupabase();
+            
+            let result;
+            if (priv.priv_id) {
+                // تعديل
+                const { data, error } = await supabase
+                    .from('privileges')
+                    .update({
+                        user_id: priv.user_id,
+                        priv_name: priv.priv_name,
+                        description: priv.description,
+                        can_view: priv.can_view,
+                        can_add: priv.can_add,
+                        can_edit: priv.can_edit,
+                        can_delete: priv.can_delete
+                    })
+                    .eq('priv_id', priv.priv_id)
+                    .select();
+                
+                if (error) {
+                    console.error('❌ خطأ في تعديل الصلاحية:', error);
+                    throw error;
+                }
+                result = data;
+            } else {
+                // إضافة - إزالة priv_id لأنها تلقائية
+                const { data, error } = await supabase
+                    .from('privileges')
+                    .insert([{
+                        user_id: priv.user_id,
+                        priv_name: priv.priv_name,
+                        description: priv.description,
+                        can_view: priv.can_view,
+                        can_add: priv.can_add,
+                        can_edit: priv.can_edit,
+                        can_delete: priv.can_delete
+                    }])
+                    .select();
+                
+                if (error) {
+                    console.error('❌ خطأ في إضافة الصلاحية:', error);
+                    throw error;
+                }
+                result = data;
+            }
+            
+            alert("✅ تم حفظ الصلاحية بنجاح في Supabase");
+        } else {
+            // استخدام API التقليدي
+            const API_PRIV = appConfig.get('PRIVILEGES');
+            const method = priv.priv_id ? "PUT" : "POST";
+            const url = priv.priv_id ? `${API_PRIV}/${priv.priv_id}` : API_PRIV;
+            
+            const res = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(priv)
+            });
+            
+            if (!res.ok) throw new Error(await res.text());
+            alert(await res.text());
+        }
+        
+        // إشعار التطبيقات الأخرى
+        localStorage.setItem('privileges_updated', Date.now());
+        if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: "PRIV_UPDATED" }, "*");
+        }
+
+        resetForm();
+        loadPrivileges();
+        
+      } catch (err) {
+        console.error('❌ خطأ في حفظ الصلاحية:', err);
+        alert(`❌ فشل في حفظ الصلاحية: ${err.message}`);
+      }
+    }
+
+    // ✅ تعديل (تعمل مع كلا الوضعين)
+    async function editPriv(id) {
+      try {
+        const mode = getConnectionMode();
+        console.log(`✏️ جاري تحميل الصلاحية للتعديل: ${id} - الوضع: ${mode}`);
+
+        let p;
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            // استخدام Supabase
+            if (!supabase) initializeSupabase();
+            
+            const { data, error } = await supabase
+                .from('privileges')
+                .select('*')
+                .eq('priv_id', id)
+                .single();
+            
+            if (error) {
+                console.error('❌ خطأ في تحميل الصلاحية:', error);
+                throw error;
+            }
+            p = data;
+        } else {
+            // استخدام API التقليدي
+            const API_PRIV = appConfig.get('PRIVILEGES');
+            const res = await fetch(`${API_PRIV}/${id}`);
+            if (!res.ok) throw new Error('فشل تحميل البيانات');
+            p = await res.json();
+        }
+        
+        document.getElementById("priv_id").value = p.priv_id;
+        document.getElementById("user_id").value = p.user_id;
+        document.getElementById("priv_name").value = p.priv_name;
+        document.getElementById("description").value = p.description || "";
+        document.getElementById("can_view").checked = p.can_view;
+        document.getElementById("can_add").checked = p.can_add;
+        document.getElementById("can_edit").checked = p.can_edit;
+        document.getElementById("can_delete").checked = p.can_delete;
+
+        // تحديث حالة "تحديد الكل"
+        updateSelectAllState();
+        
+        console.log('✅ تم تحميل الصلاحية للتعديل');
+      } catch (err) {
+        console.error('❌ خطأ في تحميل الصلاحية:', err);
+        alert('❌ فشل في تحميل بيانات الصلاحية');
+      }
+    }
+
+    // ✅ حذف (تعمل مع كلا الوضعين)
+    async function deletePriv(id) {
+      if (!confirm("هل تريد حذف هذه الصلاحية؟")) return;
+      
+      try {
+        const mode = getConnectionMode();
+        console.log(`🗑️ جاري حذف الصلاحية: ${id} - الوضع: ${mode}`);
+
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            // استخدام Supabase
+            if (!supabase) initializeSupabase();
+            
+            const { error } = await supabase
+                .from('privileges')
+                .delete()
+                .eq('priv_id', id);
+            
+            if (error) {
+                console.error('❌ خطأ في حذف الصلاحية:', error);
+                throw error;
+            }
+        } else {
+            // استخدام API التقليدي
+            const API_PRIV = appConfig.get('PRIVILEGES');
+            const res = await fetch(`${API_PRIV}/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error('فشل الحذف');
+        }
+        
+        await loadPrivileges();
+        alert('✅ تم حذف الصلاحية بنجاح');
+      } catch (err) {
+        console.error('❌ خطأ في حذف الصلاحية:', err);
+        alert('❌ فشل في حذف الصلاحية');
+      }
+    }
+
+    function resetForm() {
+      document.querySelectorAll("input[type=text], select").forEach(el => el.value = "");
+      document.querySelectorAll("input[type=checkbox]").forEach(el => el.checked = false);
+      document.getElementById("priv_id").value = "";
+      updateSelectAllState();
+      console.log('🧹 تم تنظيف النموذج');
+    }
+
+    // ✅ مزامنة الشاشات (تعمل مع كلا الوضعين)
+    async function syncScreens() {
+      if (!confirm("سيتم تحديث أسماء الشاشات في قاعدة البيانات. هل تريد المتابعة؟")) return;
+      
+      try {
+        const mode = getConnectionMode();
+        console.log('📂 جاري مزامنة الشاشات - الوضع:', mode);
+
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            if (!supabase) initializeSupabase();
+            
+            // جلب الشاشات من main.html
+            const screens = await extractScreensFromMain();
+            
+            // ✅ إضافة الشاشات الأساسية للتحويل
+            const essentialScreens = [
+                'تحويل بين الفروع',
+                'استلام التحويل', 
+                'تقرير تحويل بين الفروع',
+                'تقرير استلام التحويل'
+            ];
+            
+            essentialScreens.forEach(screen => {
+                if (!screens.includes(screen)) {
+                    screens.push(screen);
+                }
+            });
+
+            // ✅ جلب جميع المستخدمين النشطين
+            const { data: users, error: usersError } = await supabase
+                .from('users')
+                .select('user_id')
+                .eq('active', true);
+            
+            if (usersError) throw usersError;
+
+            let addedCount = 0;
+            
+            // ✅ لكل شاشة وكل مستخدم، التأكد من وجود الصلاحية
+            for (const screenName of screens) {
+                for (const user of users) {
+                    const { data: existing } = await supabase
+                        .from('privileges')
+                        .select('priv_id')
+                        .eq('user_id', user.user_id)
+                        .eq('priv_name', screenName)
+                        .limit(1);
+                    
+                    if (!existing || existing.length === 0) {
+                        // إدخال سجل افتراضي للشاشة لهذا المستخدم
+                        await supabase
+                            .from('privileges')
+                            .insert([{
+                                user_id: user.user_id,
+                                priv_name: screenName,
+                                description: `شاشة ${screenName}`,
+                                can_view: false,
+                                can_add: false,
+                                can_edit: false,
+                                can_delete: false
+                            }]);
+                        addedCount++;
+                    }
+                }
+            }
+            
+            alert(`✅ تم مزامنة ${screens.length} شاشة لـ ${users.length} مستخدم مع Supabase (تم إضافة ${addedCount} صلاحية جديدة)`);
+        } else {
+            // استخدام API التقليدي
+            const API_PRIV = appConfig.get('PRIVILEGES');
+            const syncUrl = `${API_PRIV}/sync`;
+            const res = await fetch(syncUrl, { method: "POST" });
+            
+            if (!res.ok) {
+              throw new Error(await res.text());
+            }
+            
+            const result = await res.text();
+            alert(`✅ ${result}`);
+        }
+        
+        loadScreens();
+        loadPrivileges();
+      } catch (err) {
+        console.error('❌ خطأ في مزامنة الشاشات:', err);
+        alert(`❌ فشل في المزامنة: ${err.message}`);
+      }
+    }
+
+    // ✅ دالة مساعدة لاستخراج الشاشات من main.html
+    async function extractScreensFromMain() {
+        try {
+            const response = await fetch('./main.html');
+            if (!response.ok) throw new Error('فشل تحميل main.html');
+            
+            const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            const links = [...doc.querySelectorAll('.dropdown-content a')];
+            
+            const screens = links.map(link => link.textContent.trim()).filter(name => name);
+            console.log(`📋 تم استخراج ${screens.length} شاشة من main.html`);
+            
+            return screens;
+        } catch (err) {
+            console.error('❌ خطأ في استخراج الشاشات:', err);
+            return [];
+        }
+    }
+
+    // فلترة فورية للجدول
+    function filterTable() {
+        const query = document.getElementById("searchBox").value.toLowerCase();
+        const rows = document.querySelectorAll("#privTable tbody tr");
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? "" : "none";
+        });
+    }
+
+    // التنقل بـ Enter
+    document.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        const inputs = [...document.querySelectorAll("input, select")];
+        const i = inputs.indexOf(document.activeElement);
+        if (i >= 0 && i < inputs.length - 1) {
+          e.preventDefault();
+          inputs[i + 1].focus();
+        }
+      }
+    });
+
+    // ✅ التهيئة عند تحميل الصفحة
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log('🚀 بدء تحميل شاشة الصلاحيات...');
+      
+      // تهيئة Supabase
+      initializeSupabase();
+      
+      // تهيئة تحكم الصلاحيات
+      initializePermissionsControl();
+      
+      // تحديث حالة الاتصال
+      updateConnectionStatus();
+      
+      // تحميل البيانات
+      loadUsers();
+      loadScreens();
+      loadPrivileges();
+    });
+  </script>
+</body>
+</html>

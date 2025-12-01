@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 تقرير جرد الفروع</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #1abc9c;
+            --light-color: #f5f7fa;
+            --dark-color: #34495e;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --border-radius: 12px;
+            --box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+            --gradient-primary: linear-gradient(135deg, #3498db, #1abc9c);
+            --gradient-secondary: linear-gradient(135deg, #2c3e50, #34495e);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-bottom: 25px;
+            text-align: center;
+            box-shadow: var(--box-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+            background-size: cover;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-left: 4px solid #28a745;
+            transition: var(--transition);
+        }
+
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            border: none;
+            margin-bottom: 25px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--light-color);
+        }
+
+        .report-type {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .report-type-btn {
+            padding: 12px 20px;
+            border: 2px solid var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .report-type-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .report-type-btn:hover:not(.active) {
+            background: var(--light-color);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .filter-section {
+            background: var(--light-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            border-right: 4px solid var(--primary-color);
+        }
+
+        .filter-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 0.95rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: var(--transition);
+            background-color: white;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 140px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--gradient-secondary);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color), #e67e22);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #27ae60);
+            color: white;
+        }
+
+        .actions-section {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .summary {
+            background: var(--light-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--success-color);
+            margin-top: 5px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            background: white;
+            margin-top: 25px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            min-width: 1200px;
+        }
+
+        th {
+            background: var(--gradient-secondary);
+            color: white;
+            padding: 16px 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: 1px solid #2c3e50;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 14px 12px;
+            border: 1px solid #e1e5e9;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .low-stock {
+            background: #ffebee !important;
+            font-weight: bold;
+        }
+
+        .zero-stock {
+            background: #fff3e0 !important;
+            font-weight: bold;
+        }
+
+        .expired {
+            background: #fce4ec !important;
+            font-weight: bold;
+        }
+
+        .stock-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-good {
+            background: #e8f5e8;
+            color: #27ae60;
+        }
+
+        .status-warning {
+            background: #fff3e0;
+            color: #f39c12;
+        }
+
+        .status-danger {
+            background: #ffebee;
+            color: #e74c3c;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            background: var(--light-color);
+            border-radius: var(--border-radius);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+                border-radius: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .report-type {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .report-type-btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+            
+            .actions-section {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .connection-status {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                font-size: 12px;
+            }
+            
+            .summary {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            table {
+                font-size: 0.8rem;
+            }
+            
+            th, td {
+                padding: 10px 6px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                border-radius: 8px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .card {
+                padding: 15px;
+                border-radius: 10px;
+            }
+            
+            input, select {
+                padding: 10px 12px;
+            }
+            
+            .btn {
+                padding: 12px 20px;
+            }
+            
+            .summary {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card, .table-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .table-container,
+            .table-container * {
+                visibility: visible;
+            }
+            .table-container {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                box-shadow: none;
+                margin: 0;
+                padding: 20px;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- شريط حالة الاتصال -->
+        <div class="connection-status no-print">
+            <span id="connection-status">
+                <i class="fas fa-spinner fa-spin"></i> جاري الاتصال...
+            </span>
+        </div>
+
+        <!-- مؤشر التحميل -->
+        <div id="loading-spinner" class="loading-spinner no-print">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+
+        <!-- الهيدر -->
+        <div class="header no-print">
+            <h1><i class="fas fa-warehouse"></i> تقرير جرد الفروع</h1>
+            <div>نظام إدارة المخازن والمستودعات</div>
+        </div>
+
+        <!-- أنواع التقارير -->
+        <div class="card no-print">
+            <h2 class="card-title"><i class="fas fa-chart-bar"></i> نوع التقرير</h2>
+            <div class="report-type">
+                <button class="report-type-btn active" onclick="app.setReportType('current')">
+                    <i class="fas fa-sync"></i> المخزون الحالي
+                </button>
+                <button class="report-type-btn" onclick="app.setReportType('low')">
+                    <i class="fas fa-exclamation-triangle"></i> مخزون منخفض
+                </button>
+                <button class="report-type-btn" onclick="app.setReportType('zero')">
+                    <i class="fas fa-ban"></i> مخزون صفري
+                </button>
+                <button class="report-type-btn" onclick="app.setReportType('expired')">
+                    <i class="fas fa-calendar-times"></i> منتهي الصلاحية
+                </button>
+            </div>
+        </div>
+
+        <!-- الفلاتر -->
+        <div class="card no-print">
+            <h2 class="card-title"><i class="fas fa-filter"></i> معايير البحث</h2>
+            <div class="filters-grid">
+                <div class="filter-section">
+                    <h3><i class="fas fa-warehouse"></i> المخازن والأصناف</h3>
+                    <div class="filter-group">
+                        <label for="storeFilter">المخزن:</label>
+                        <select id="storeFilter">
+                            <option value="">جميع المخازن</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="fromItem">من صنف:</label>
+                        <input type="text" id="fromItem" placeholder="كود الصنف">
+                    </div>
+                    <div class="filter-group">
+                        <label for="toItem">إلى صنف:</label>
+                        <input type="text" id="toItem" placeholder="كود الصنف">
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h3><i class="fas fa-cog"></i> الإعدادات</h3>
+                    <div class="filter-group">
+                        <label for="unitType">نوع الوحدة:</label>
+                        <select id="unitType">
+                            <option value="">جميع الوحدات</option>
+                            <option value="piece">قطعة</option>
+                            <option value="package">علبة</option>
+                            <option value="meter">متر</option>
+                            <option value="box">كرتون</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="stockStatus">حالة المخزون:</label>
+                        <select id="stockStatus">
+                            <option value="">جميع الحالات</option>
+                            <option value="good">مخزون جيد</option>
+                            <option value="low">مخزون منخفض</option>
+                            <option value="zero">مخزون صفري</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sortBy">فرز النتائج حسب:</label>
+                        <select id="sortBy">
+                            <option value="item_qty">الكمية (منخفض أولاً)</option>
+                            <option value="item_qty_desc">الكمية (مرتفع أولاً)</option>
+                            <option value="item_id">كود الصنف</option>
+                            <option value="item_nm">اسم الصنف</option>
+                            <option value="total_price">القيمة الإجمالية</option>
+                            <option value="store_id">المخزن</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h3><i class="fas fa-list"></i> عرض النتائج</h3>
+                    <div class="filter-group">
+                        <label for="pageSize">عرض النتائج:</label>
+                        <select id="pageSize">
+                            <option value="50">50 سجل</option>
+                            <option value="100">100 سجل</option>
+                            <option value="200">200 سجل</option>
+                            <option value="all">عرض الكل</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الأزرار -->
+            <div class="actions-section">
+                <button class="btn btn-primary" onclick="app.loadInventoryReport()">
+                    <i class="fas fa-search"></i> عرض التقرير
+                </button>
+                <button class="btn btn-secondary" onclick="app.clearFilters()">
+                    <i class="fas fa-broom"></i> مسح الفلاتر
+                </button>
+                <button class="btn btn-warning" onclick="app.loadLowStockReport()">
+                    <i class="fas fa-exclamation-triangle"></i> المخزون المنخفض
+                </button>
+                <button class="btn btn-danger" onclick="app.loadZeroStockReport()">
+                    <i class="fas fa-ban"></i> المخزون الصفري
+                </button>
+                <button class="btn btn-info" onclick="app.printReport()">
+                    <i class="fas fa-print"></i> طباعة التقرير
+                </button>
+                <button class="btn btn-success" onclick="app.exportToExcel()">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- الملخص -->
+        <div class="summary no-print" id="summarySection" style="display: none;">
+            <div class="summary-item">
+                <div>إجمالي الأصناف</div>
+                <div class="summary-value" id="totalItems">0</div>
+            </div>
+            <div class="summary-item">
+                <div>إجمالي الكميات</div>
+                <div class="summary-value" id="totalQuantities">0</div>
+            </div>
+            <div class="summary-item">
+                <div>إجمالي القيمة</div>
+                <div class="summary-value" id="totalValue">0</div>
+            </div>
+            <div class="summary-item">
+                <div>متوسط سعر الشراء</div>
+                <div class="summary-value" id="avgPrice">0</div>
+            </div>
+            <div class="summary-item">
+                <div>الأصناف المنخفضة</div>
+                <div class="summary-value" id="lowStockItems">0</div>
+            </div>
+            <div class="summary-item">
+                <div>الأصناف المنتهية</div>
+                <div class="summary-value" id="expiredItems">0</div>
+            </div>
+        </div>
+
+        <!-- جدول البيانات -->
+        <div class="table-container">
+            <div id="reportData"></div>
+        </div>
+    </div>
+
+    <script>
+        class InventoryReportApp {
+            constructor() {
+                // تكوين Supabase
+                this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+                this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+                this.supabase = null;
+                this.isOnline = false;
+                
+                this.currentData = [];
+                this.currentReportType = 'current';
+                this.allStores = [];
+                this.allItems = [];
+                
+                this.init();
+            }
+
+            async init() {
+                this.dom = this._initDOM();
+                this._bindEvents();
+                const connected = await this.initSupabase();
+                
+                if (connected) {
+                    await this.loadInitialData();
+                    this.setDefaultFilters();
+                    this.addEnterNavigation();
+                } else {
+                    this.showError('فشل في الاتصال بقاعدة البيانات. يرجى التحقق من الاتصال بالإنترنت.');
+                }
+            }
+
+            _initDOM() {
+                return {
+                    // عناصر الفلترة
+                    storeFilter: document.getElementById("storeFilter"),
+                    fromItem: document.getElementById("fromItem"),
+                    toItem: document.getElementById("toItem"),
+                    unitType: document.getElementById("unitType"),
+                    stockStatus: document.getElementById("stockStatus"),
+                    sortBy: document.getElementById("sortBy"),
+                    pageSize: document.getElementById("pageSize"),
+                    
+                    // عرض التقرير
+                    reportData: document.getElementById("reportData"),
+                    summarySection: document.getElementById("summarySection"),
+                    
+                    // حالة النظام
+                    connectionStatus: document.getElementById("connection-status"),
+                    loadingSpinner: document.getElementById("loading-spinner")
+                };
+            }
+
+            _bindEvents() {
+                // إضافة مستمعات الأحداث للفلاتر
+                this.dom.fromItem.addEventListener('input', () => this.validateItemRange());
+                this.dom.toItem.addEventListener('input', () => this.validateItemRange());
+            }
+
+            async initSupabase() {
+                try {
+                    this.showLoading(true);
+                    this.updateConnectionStatus('warning', '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال...');
+                    
+                    console.log('🔄 جاري تهيئة Supabase...');
+                    this.supabase = supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+                    
+                    // اختبار الاتصال البسيط
+                    const { data, error } = await this.supabase.auth.getSession();
+                    
+                    if (error) {
+                        console.error('❌ خطأ في المصادقة:', error);
+                        throw error;
+                    }
+
+                    this.isOnline = true;
+                    this.updateConnectionStatus('success', '<i class="fas fa-cloud-check"></i> متصل بالسحابة');
+                    console.log('✅ Supabase متصل بنجاح');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ فشل في الاتصال بـ Supabase:', error);
+                    this.isOnline = false;
+                    this.updateConnectionStatus('danger', '<i class="fas fa-cloud-slash"></i> غير متصل');
+                    
+                    let errorMessage = 'فشل في الاتصال بقاعدة البيانات';
+                    if (error.message) {
+                        errorMessage += `: ${error.message}`;
+                    }
+                    this.showError(errorMessage);
+                    return false;
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            // تحديث حالة الاتصال
+            updateConnectionStatus(type, message) {
+                if (!this.dom.connectionStatus) return;
+                
+                this.dom.connectionStatus.innerHTML = message;
+                this.dom.connectionStatus.style.borderLeftColor = 
+                    type === 'success' ? '#28a745' : 
+                    type === 'danger' ? '#dc3545' : '#ffc107';
+            }
+
+            // إظهار/إخفاء مؤشر التحميل
+            showLoading(show) {
+                if (this.dom.loadingSpinner) {
+                    this.dom.loadingSpinner.style.display = show ? 'block' : 'none';
+                }
+            }
+
+            // تحميل البيانات الأولية
+            async loadInitialData() {
+                try {
+                    this.showLoading(true);
+                    await Promise.all([
+                        this.loadStores(),
+                        this.loadItems()
+                    ]);
+                    console.log('✅ تم تحميل جميع البيانات بنجاح');
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل البيانات:', error);
+                    this.showError('حدث خطأ في تحميل البيانات الأساسية: ' + error.message);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            // تحميل المخازن
+            async loadStores() {
+                try {
+                    if (!this.supabase) {
+                        this.showError('غير متصل بقاعدة البيانات');
+                        return;
+                    }
+
+                    const { data, error } = await this.supabase
+                        .from('stores')
+                        .select('store_id, store_name')
+                        .order('store_name');
+
+                    if (error) {
+                        console.error('❌ خطأ في تحميل المخازن:', error);
+                        this.showError('خطأ في تحميل المخازن: ' + error.message);
+                        return;
+                    }
+
+                    this.allStores = data || [];
+                    this.renderStores();
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل المخازن:', error);
+                    this.showError('خطأ في تحميل المخازن: ' + error.message);
+                }
+            }
+
+            // تحميل الأصناف
+            async loadItems() {
+                try {
+                    if (!this.supabase) {
+                        this.showError('غير متصل بقاعدة البيانات');
+                        return;
+                    }
+
+                    const { data, error } = await this.supabase
+                        .from('items')
+                        .select('item_id, item_nm')
+                        .order('item_nm');
+
+                    if (error) {
+                        console.error('❌ خطأ في تحميل الأصناف:', error);
+                        this.showError('خطأ في تحميل الأصناف: ' + error.message);
+                        return;
+                    }
+
+                    this.allItems = data || [];
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل الأصناف:', error);
+                    this.showError('خطأ في تحميل الأصناف: ' + error.message);
+                }
+            }
+
+            // عرض المخازن في القائمة المنسدلة
+            renderStores() {
+                this.dom.storeFilter.innerHTML = '<option value="">جميع المخازن</option>';
+                this.allStores.forEach(store => {
+                    const option = document.createElement('option');
+                    option.value = store.store_id;
+                    option.textContent = `${store.store_id} - ${store.store_name}`;
+                    this.dom.storeFilter.appendChild(option);
+                });
+            }
+
+            // تعيين الفلاتر الافتراضية
+            setDefaultFilters() {
+                this.dom.sortBy.value = 'item_qty';
+                this.dom.pageSize.value = '50';
+            }
+
+            // التنقل بالـ Enter بين الحقول
+            addEnterNavigation() {
+                const fields = [
+                    'storeFilter', 'fromItem', 'toItem', 'unitType', 
+                    'stockStatus', 'sortBy', 'pageSize'
+                ];
+
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                this.moveToNextField(fieldId);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // الانتقال للحقل التالي
+            moveToNextField(currentFieldId) {
+                const fieldOrder = [
+                    'storeFilter', 'fromItem', 'toItem', 'unitType', 
+                    'stockStatus', 'sortBy', 'pageSize'
+                ];
+
+                const currentIndex = fieldOrder.indexOf(currentFieldId);
+                if (currentIndex === -1 || currentIndex === fieldOrder.length - 1) {
+                    return;
+                }
+
+                const nextFieldId = fieldOrder[currentIndex + 1];
+                const nextField = document.getElementById(nextFieldId);
+                if (nextField) {
+                    nextField.focus();
+                }
+            }
+
+            // التحقق من نطاق الأصناف
+            validateItemRange() {
+                const fromItem = this.dom.fromItem.value;
+                const toItem = this.dom.toItem.value;
+                
+                if (fromItem && toItem && fromItem > toItem) {
+                    this.showError('⚠️ كود الصنف البداية يجب أن يكون أقل من أو يساوي كود النهاية');
+                }
+            }
+
+            // تعيين نوع التقرير
+            setReportType(type) {
+                this.currentReportType = type;
+                
+                // تحديث أزرار النوع النشط
+                document.querySelectorAll('.report-type-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                
+                // تحميل التقرير تلقائياً عند تغيير النوع
+                this.loadReportByType();
+            }
+
+            // تحميل التقرير حسب النوع
+            async loadReportByType() {
+                switch (this.currentReportType) {
+                    case 'current':
+                        await this.loadInventoryReport();
+                        break;
+                    case 'low':
+                        await this.loadLowStockReport();
+                        break;
+                    case 'zero':
+                        await this.loadZeroStockReport();
+                        break;
+                    case 'expired':
+                        await this.loadExpiredReport();
+                        break;
+                }
+            }
+
+            // تحميل تقرير الجرد العام
+            async loadInventoryReport() {
+                await this.loadReportData();
+            }
+
+            // تحميل تقرير المخزون المنخفض
+            async loadLowStockReport() {
+                await this.loadReportData('low-stock');
+            }
+
+            // تحميل تقرير المخزون الصفري
+            async loadZeroStockReport() {
+                await this.loadReportData('zero-stock');
+            }
+
+            // تحميل تقرير المنتهي الصلاحية
+            async loadExpiredReport() {
+                await this.loadReportData('expired');
+            }
+
+            // تحميل بيانات التقرير من جدول a_master
+            async loadReportData(reportType = 'inventory') {
+                try {
+                    this.showLoading(true);
+                    const filters = this.getFilters();
+                    
+                    console.log(`🔍 جلب تقرير ${reportType} بالمعايير:`, filters);
+
+                    if (!this.supabase || !this.isOnline) {
+                        this.showError('غير متصل بقاعدة البيانات');
+                        return;
+                    }
+
+                    let query = this.supabase
+                        .from('a_master')
+                        .select(`
+                            *,
+                            stores!a_master_store_id_fkey(store_name),
+                            items!a_master_item_id_fkey(item_nm),
+                            suppliers!a_master_supplierid_fkey(supplier_name)
+                        `);
+
+                    // تطبيق الفلاتر الأساسية
+                    if (filters.store) {
+                        query = query.eq('store_id', filters.store);
+                    }
+                    if (filters.fromItem) {
+                        query = query.gte('item_id', filters.fromItem);
+                    }
+                    if (filters.toItem) {
+                        query = query.lte('item_id', filters.toItem);
+                    }
+                    if (filters.unitType) {
+                        query = query.eq('unit_type', filters.unitType);
+                    }
+
+                    // تطبيق فلاتر خاصة بنوع التقرير
+                    switch (reportType) {
+                        case 'low-stock':
+                            query = query.lte('item_qty', 10); // مثال للمخزون المنخفض
+                            break;
+                        case 'zero-stock':
+                            query = query.eq('item_qty', 0);
+                            break;
+                        case 'expired':
+                            query = query.lt('expiry_date', new Date().toISOString());
+                            break;
+                    }
+
+                    // التصنيف
+                    if (filters.sortBy) {
+                        const order = filters.sortBy.includes('_desc') ? { ascending: false } : { ascending: true };
+                        const sortField = filters.sortBy.replace('_desc', '');
+                        query = query.order(sortField, order);
+                    }
+
+                    const { data, error } = await query;
+
+                    if (error) {
+                        console.error('❌ خطأ في تحميل البيانات:', error);
+                        this.showError('خطأ في تحميل بيانات الجرد: ' + error.message);
+                        return;
+                    }
+
+                    this.currentData = data || [];
+                    this.renderReport(this.currentData, reportType);
+                    this.updateSummary(this.currentData, reportType);
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل التقرير:', error);
+                    this.showError(`حدث خطأ في تحميل التقرير: ${error.message}`);
+                    this.renderReport([]);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            // الحصول على الفلاتر
+            getFilters() {
+                return {
+                    store: this.dom.storeFilter.value || null,
+                    fromItem: this.dom.fromItem.value || null,
+                    toItem: this.dom.toItem.value || null,
+                    unitType: this.dom.unitType.value || null,
+                    stockStatus: this.dom.stockStatus.value || null,
+                    sortBy: this.dom.sortBy.value || 'item_qty',
+                    pageSize: this.dom.pageSize.value || '50'
+                };
+            }
+
+            // عرض التقرير مع الحقول المحدثة
+            renderReport(data, reportType = 'inventory') {
+                if (!data || data.length === 0) {
+                    this.dom.reportData.innerHTML = '<div class="no-data">⚠️ لا توجد بيانات تطابق معايير البحث</div>';
+                    this.dom.summarySection.style.display = 'none';
+                    return;
+                }
+
+                let html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>المخزن</th>
+                                <th>كود الصنف</th>
+                                <th>اسم الصنف</th>
+                                <th>الكمية</th>
+                                <th>الوحدة</th>
+                                <th>سعر الشراء</th>
+                                <th>سعر البيع 1</th>
+                                <th>سعر البيع 2</th>
+                                <th>سعر البيع 3</th>
+                                <th>القيمة الإجمالية</th>
+                                <th>حد الطلب</th>
+                                <th>حالة المخزون</th>
+                                <th>رقم التشغيلة</th>
+                                <th>تاريخ الصلاحية</th>
+                                <th>آخر تحديث</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.forEach((row, index) => {
+                    const rowClass = this.getRowClass(row);
+                    const stockStatus = this.getStockStatus(row);
+                    
+                    html += `
+                        <tr class="${rowClass}">
+                            <td>${index + 1}</td>
+                            <td>${row.stores?.store_name || row.store_id}</td>
+                            <td><strong>${row.item_id || ''}</strong></td>
+                            <td>${row.items?.item_nm || row.item_nm || ''}</td>
+                            <td><strong>${this.formatNumber(row.item_qty)}</strong></td>
+                            <td>${this.getUnitText(row.unit_type)}</td>
+                            <td>${this.formatNumber(row.buy_price)}</td>
+                            <td>${this.formatNumber(row.sale_price1)}</td>
+                            <td>${this.formatNumber(row.sale_price2)}</td>
+                            <td>${this.formatNumber(row.sale_price3)}</td>
+                            <td><strong>${this.formatNumber(row.total_price)}</strong></td>
+                            <td>${this.formatNumber(row.min_qty)}</td>
+                            <td><span class="stock-status ${stockStatus.class}">${stockStatus.text}</span></td>
+                            <td>${row.batch_no || ''}</td>
+                            <td>${this.formatDate(row.expiry_date)}</td>
+                            <td>${this.formatDate(row.user_stamp)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                this.dom.reportData.innerHTML = html;
+                this.dom.summarySection.style.display = 'grid';
+            }
+
+            // تحديد فئة الصف
+            getRowClass(row) {
+                const itemQty = parseFloat(row.item_qty) || 0;
+                const minQty = parseFloat(row.min_qty) || 0;
+                const expiryDate = row.expiry_date;
+                
+                if (itemQty === 0) return 'zero-stock';
+                if (minQty > 0 && itemQty <= minQty) return 'low-stock';
+                if (expiryDate && this.isExpired(expiryDate)) return 'expired';
+                
+                return '';
+            }
+
+            // تحديد حالة المخزون
+            getStockStatus(row) {
+                const itemQty = parseFloat(row.item_qty) || 0;
+                const minQty = parseFloat(row.min_qty) || 0;
+                const expiryDate = row.expiry_date;
+                
+                if (itemQty === 0) {
+                    return { class: 'status-danger', text: '⭕ صفري' };
+                }
+                
+                if (minQty > 0 && itemQty <= minQty) {
+                    return { class: 'status-warning', text: '📢 منخفض' };
+                }
+                
+                if (expiryDate && this.isExpired(expiryDate)) {
+                    return { class: 'status-danger', text: '📅 منتهي' };
+                }
+                
+                return { class: 'status-good', text: '✅ جيد' };
+            }
+
+            // التحقق من انتهاء الصلاحية
+            isExpired(expiryDate) {
+                if (!expiryDate) return false;
+                const today = new Date();
+                const expiry = new Date(expiryDate);
+                return expiry < today;
+            }
+
+            // نص الوحدة
+            getUnitText(unitType) {
+                const units = {
+                    'piece': 'قطعة',
+                    'package': 'علبة',
+                    'meter': 'متر',
+                    'box': 'كرتون'
+                };
+                return units[unitType] || unitType || 'قطعة';
+            }
+
+            // تنسيق الأرقام
+            formatNumber(value) {
+                if (!value && value !== 0) return '';
+                const num = parseFloat(value);
+                return isNaN(num) ? '' : num.toLocaleString('ar-EG', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            // تنسيق التاريخ
+            formatDate(dateString) {
+                if (!dateString) return '';
+                try {
+                    const date = new Date(dateString);
+                    return date.toISOString().split('T')[0];
+                } catch {
+                    return dateString;
+                }
+            }
+
+            // تحديث الملخص
+            updateSummary(data, reportType) {
+                const totalItems = data.length;
+                const totalQuantities = data.reduce((sum, row) => sum + (parseFloat(row.item_qty) || 0), 0);
+                const totalValue = data.reduce((sum, row) => sum + (parseFloat(row.total_price) || 0), 0);
+                const avgPrice = totalQuantities > 0 ? totalValue / totalQuantities : 0;
+                
+                const lowStockItems = data.filter(row => {
+                    const itemQty = parseFloat(row.item_qty) || 0;
+                    const minQty = parseFloat(row.min_qty) || 0;
+                    return minQty > 0 && itemQty <= minQty && itemQty > 0;
+                }).length;
+                
+                const expiredItems = data.filter(row => {
+                    return row.expiry_date && this.isExpired(row.expiry_date);
+                }).length;
+
+                document.getElementById('totalItems').textContent = totalItems.toLocaleString('ar-EG');
+                document.getElementById('totalQuantities').textContent = this.formatNumber(totalQuantities);
+                document.getElementById('totalValue').textContent = this.formatNumber(totalValue);
+                document.getElementById('avgPrice').textContent = this.formatNumber(avgPrice);
+                document.getElementById('lowStockItems').textContent = lowStockItems.toLocaleString('ar-EG');
+                document.getElementById('expiredItems').textContent = expiredItems.toLocaleString('ar-EG');
+            }
+
+            // مسح الفلاتر
+            clearFilters() {
+                this.dom.storeFilter.value = '';
+                this.dom.fromItem.value = '';
+                this.dom.toItem.value = '';
+                this.dom.unitType.value = '';
+                this.dom.stockStatus.value = '';
+                this.dom.sortBy.value = 'item_qty';
+                this.dom.pageSize.value = '50';
+                
+                this.dom.reportData.innerHTML = '';
+                this.dom.summarySection.style.display = 'none';
+                
+                // إعادة تعيين نوع التقرير للحالي
+                this.setReportType('current');
+            }
+
+            // طباعة التقرير
+            printReport() {
+                if (this.currentData.length === 0) {
+                    this.showError('⚠️ لا توجد بيانات للطباعة');
+                    return;
+                }
+                window.print();
+            }
+
+            // تصدير إلى Excel
+            exportToExcel() {
+                if (this.currentData.length === 0) {
+                    this.showError('⚠️ لا توجد بيانات للتصدير');
+                    return;
+                }
+
+                // إنشاء بيانات CSV
+                const headers = [
+                    'المخزن', 'كود الصنف', 'اسم الصنف', 'الكمية', 'الوحدة',
+                    'سعر الشراء', 'سعر البيع 1', 'سعر البيع 2', 'سعر البيع 3',
+                    'القيمة الإجمالية', 'حد الطلب', 'حالة المخزون', 'رقم التشغيلة', 
+                    'تاريخ الصلاحية', 'آخر تحديث'
+                ];
+
+                const data = this.currentData.map(row => {
+                    const stockStatus = this.getStockStatus(row);
+                    return [
+                        row.stores?.store_name || row.store_id,
+                        row.item_id || '',
+                        row.items?.item_nm || row.item_nm || '',
+                        row.item_qty || 0,
+                        this.getUnitText(row.unit_type),
+                        row.buy_price || 0,
+                        row.sale_price1 || 0,
+                        row.sale_price2 || 0,
+                        row.sale_price3 || 0,
+                        row.total_price || 0,
+                        row.min_qty || 0,
+                        stockStatus.text,
+                        row.batch_no || '',
+                        this.formatDate(row.expiry_date),
+                        this.formatDate(row.user_stamp)
+                    ];
+                });
+
+                let csvContent = '\uFEFF'; // BOM للتعرف على الأحرف العربية
+                csvContent += headers.join(',') + '\n';
+                
+                data.forEach(row => {
+                    csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', `تقرير_جرد_المخزون_${new Date().toISOString().slice(0,10)}.csv`);
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            // عرض رسائل الخطأ
+            showError(message) {
+                alert(message);
+            }
+            
+        }
+
+        
+
+        // تهيئة التطبيق
+        const app = new InventoryReportApp();
+    </script>
+</body>
+</html>

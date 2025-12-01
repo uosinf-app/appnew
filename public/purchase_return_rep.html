@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 تقرير مرتجع المشتريات</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e74c3c;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+
+        .search-filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .search-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d68910;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .report-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .navigation-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+        }
+
+        .nav-info {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .invoice-details {
+            background: #fff;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .invoice-header {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .invoice-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .invoice-field label {
+            font-weight: bold;
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .invoice-field span {
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .items-table th {
+            background: #34495e;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .items-table td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .items-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .items-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .totals-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #bdc3c7;
+        }
+
+        .total-item {
+            text-align: center;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .total-value {
+            font-size: 18px;
+            color: #e74c3c;
+            margin-top: 5px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-size: 18px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #3498db;
+            font-size: 16px;
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        .shortcut-hint {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .focused {
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.8) !important;
+            border-color: #3498db !important;
+        }
+
+        /* شريط حالة الاتصال */
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .connection-status.supabase {
+            border-left: 4px solid #28a745;
+        }
+        
+        .connection-status.local {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .connection-status .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-dot.connected {
+            background-color: #28a745;
+        }
+        
+        .status-dot.disconnected {
+            background-color: #dc3545;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* تحسينات للطباعة */
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+
+        .print-header {
+            display: none;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 10px;
+                margin: 0;
+                width: 100%;
+            }
+
+            .search-filters,
+            .search-buttons,
+            .navigation-controls,
+            .btn {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block;
+            }
+
+            .header {
+                border-bottom: 3px solid #333;
+                margin-bottom: 20px;
+            }
+
+            .invoice-details {
+                border: 2px solid #333;
+                page-break-inside: avoid;
+                margin-bottom: 30px;
+            }
+
+            .items-table {
+                border: 1px solid #333;
+            }
+
+            .items-table th {
+                background: #333 !important;
+                color: white !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .report-summary {
+                background: #667eea !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .no-results,
+            .loading {
+                display: none !important;
+            }
+
+            .print-header {
+                display: block;
+                text-align: center;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #333;
+            }
+
+            .print-header h2 {
+                color: #2c3e50;
+                margin-bottom: 5px;
+            }
+
+            .print-header .print-date {
+                color: #7f8c8d;
+                font-size: 14px;
+            }
+        }
+
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #856404;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* تنسيقات الموبايل */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .container {
+                padding: 15px;
+                border-radius: 8px;
+            }
+            
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .header .subtitle {
+                font-size: 14px;
+            }
+            
+            .search-filters {
+                padding: 15px;
+            }
+            
+            .filter-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .search-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+                padding: 12px;
+            }
+            
+            .report-summary {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .summary-value {
+                font-size: 20px;
+            }
+            
+            .summary-label {
+                font-size: 12px;
+            }
+            
+            .navigation-controls {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .nav-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .invoice-details {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .invoice-header {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .items-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+                font-size: 12px;
+            }
+            
+            .items-table th,
+            .items-table td {
+                padding: 8px 6px;
+                min-width: 80px;
+            }
+            
+            .totals-section {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .total-item {
+                padding: 12px;
+            }
+            
+            .total-value {
+                font-size: 16px;
+            }
+            
+            .connection-status {
+                position: relative;
+                top: 0;
+                left: 0;
+                margin: 0 0 15px 0;
+                width: 100%;
+                border-radius: 5px;
+                border-left: none;
+                border-bottom: 3px solid #28a745;
+            }
+            
+            .connection-status.local {
+                border-bottom: 3px solid #dc3545;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .report-summary {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-item {
+                padding: 12px;
+            }
+            
+            .search-filters {
+                padding: 12px;
+            }
+            
+            .filter-group input,
+            .filter-group select {
+                padding: 8px;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+            }
+            
+            .connection-status {
+                font-size: 11px;
+                padding: 8px 10px;
+            }
+            
+            .items-table {
+                font-size: 11px;
+            }
+            
+            .items-table th,
+            .items-table td {
+                padding: 6px 4px;
+                min-width: 70px;
+            }
+        }
+
+        /* تحسينات للوضع الأفقي في الموبايل */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .filter-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .report-summary {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .invoice-header {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* تحسينات لللمس على الأجهزة اللوحية */
+        @media (hover: none) and (pointer: coarse) {
+            .btn {
+                min-height: 44px;
+            }
+            
+            .filter-group input,
+            .filter-group select {
+                min-height: 44px;
+                font-size: 16px;
+            }
+            
+            .items-table th,
+            .items-table td {
+                padding: 12px 8px;
+            }
+        }
+
+        /* تحسين الرؤية على الشاشات الصغيرة */
+        @media (max-width: 768px) {
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+            
+            .btn:active {
+                transform: scale(0.98);
+                opacity: 0.9;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط حالة الاتصال -->
+    <div id="connectionStatus" class="connection-status supabase">
+        <div class="status-dot connected"></div>
+        <span id="statusText">🌐 متصل بـ Supabase</span>
+        <div class="loading-spinner" id="connectionSpinner" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <div class="print-header">
+            <h2>تقرير مرتجع المشتريات</h2>
+            <div class="print-date" id="printDate"></div>
+        </div>
+
+        <div class="header">
+            <h1>📊 تقرير مرتجع المشتريات</h1>
+            <div class="subtitle">نظام التقارير المتقدم - إدارة مرتجعات المشتريات</div>
+        </div>
+
+        <div class="debug-info" id="debugInfo" style="display: none;">
+            <!-- سيتم عرض معلومات التصحيح هنا -->
+        </div>
+
+        <div class="search-filters">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>📅 من تاريخ:</label>
+                    <input type="date" id="fromDate" class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <label>📅 إلى تاريخ:</label>
+                    <input type="date" id="toDate" class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <label>🏪 من فرع:</label>
+                    <select id="fromStore" class="filter-input">
+                        <option value="">جميع المخازن</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>🏪 إلى فرع:</label>
+                    <select id="toStore" class="filter-input">
+                        <option value="">جميع المخازن</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>🧾 من فاتورة:</label>
+                    <input type="number" id="fromInvoice" class="filter-input" placeholder="رقم الفاتورة">
+                </div>
+                <div class="filter-group">
+                    <label>🧾 إلى فاتورة:</label>
+                    <input type="number" id="toInvoice" class="filter-input" placeholder="رقم الفاتورة">
+                </div>
+                <div class="filter-group">
+                    <label>🏪 من مورد:</label>
+                    <select id="fromSupplier" class="filter-input">
+                        <option value="">جميع الموردين</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>🏪 إلى مورد:</label>
+                    <select id="toSupplier" class="filter-input">
+                        <option value="">جميع الموردين</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>📦 من صنف:</label>
+                    <select id="fromItem" class="filter-input">
+                        <option value="">جميع الأصناف</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>📦 إلى صنف:</label>
+                    <select id="toItem" class="filter-input">
+                        <option value="">جميع الأصناف</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="search-buttons">
+                <button class="btn btn-primary" id="searchBtn">
+                    🔍 بحث
+                </button>
+                <button class="btn btn-success" id="printBtn">
+                    🖨️ طباعة التقرير
+                </button>
+                <button class="btn btn-warning" id="resetBtn">
+                    🔄 إعادة تعيين
+                </button>
+                <button class="btn btn-danger" id="exportBtn">
+                    📥 تصدير Excel
+                </button>
+                <button class="btn btn-info" id="debugBtn" style="background: #6c757d;">
+                    🐞 تصحيح
+                </button>
+            </div>
+
+            <div class="shortcut-hint">
+                💡 استخدم زر Enter للتنقل بين الحقول، والأسهم للتنقل بين النتائج
+            </div>
+        </div>
+
+        <div class="report-summary" id="reportSummary" style="display: none;">
+            <div class="summary-item">
+                <div class="summary-value" id="totalInvoices">0</div>
+                <div class="summary-label">عدد الفواتير</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="totalItems">0</div>
+                <div class="summary-label">عدد الأصناف</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="totalQuantity">0</div>
+                <div class="summary-label">إجمالي الكميات</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="totalAmount">0.00</div>
+                <div class="summary-label">إجمالي القيمة</div>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <div class="navigation-controls">
+                <div class="nav-info">
+                    فاتورة: <span id="currentInvoice">1</span> من <span id="totalInvoicesCount">0</span>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn btn-primary" id="prevBtn">◀ السابقة</button>
+                    <button class="btn btn-primary" id="nextBtn">التالية ▶</button>
+                </div>
+            </div>
+
+            <div class="invoice-details" id="invoiceDetails">
+                <!-- سيتم ملؤها ديناميكياً -->
+            </div>
+        </div>
+
+        <div class="no-results" id="noResults" style="display: none;">
+            🚫 لا توجد نتائج تطابق معايير البحث
+        </div>
+
+        <div class="loading" id="loading" style="display: none;">
+            ⏳ جاري تحميل البيانات...
+        </div>
+    </div>
+
+    <script>
+        // 🔧 تكوين Supabase
+        const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+        
+        // تهيئة عميل Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        class PurchaseReturnReport {
+            constructor() {
+                this.currentResults = [];
+                this.currentIndex = 0;
+                this.suppliers = [];
+                this.items = [];
+                this.stores = [];
+                this.filterFields = [
+                    'fromDate', 'toDate', 'fromStore', 'toStore', 
+                    'fromInvoice', 'toInvoice', 'fromSupplier', 'toSupplier', 
+                    'fromItem', 'toItem'
+                ];
+                this.init();
+            }
+
+            init() {
+                this.setDefaultDates();
+                this.setupEventListeners();
+                this.loadAllData();
+                this.setupKeyboardNavigation();
+                this.setupPrintDate();
+                this.updateConnectionStatus();
+            }
+
+            updateConnectionStatus() {
+                const statusDiv = document.getElementById('connectionStatus');
+                const statusText = document.getElementById('statusText');
+                
+                // اختبار الاتصال بـ Supabase
+                this.testSupabaseConnection().then(success => {
+                    if (success) {
+                        statusDiv.className = 'connection-status supabase';
+                        statusText.textContent = '🌐 متصل بـ Supabase';
+                    } else {
+                        statusDiv.className = 'connection-status local';
+                        statusText.textContent = '🔗 اتصال محلي (بدون Supabase)';
+                    }
+                });
+            }
+
+            async testSupabaseConnection() {
+                try {
+                    const spinner = document.getElementById('connectionSpinner');
+                    spinner.style.display = 'inline-block';
+                    
+                    // اختبار بسيط للاتصال
+                    const { data, error } = await supabase
+                        .from('items')
+                        .select('count')
+                        .limit(1);
+                    
+                    spinner.style.display = 'none';
+                    
+                    if (error) {
+                        this.logDebug(`❌ فشل الاتصال بـ Supabase: ${error.message}`);
+                        return false;
+                    }
+                    
+                    this.logDebug('✅ الاتصال بـ Supabase ناجح');
+                    return true;
+                } catch (error) {
+                    this.logDebug(`❌ خطأ في الاتصال بـ Supabase: ${error.message}`);
+                    return false;
+                }
+            }
+
+            setDefaultDates() {
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                
+                document.getElementById('fromDate').value = this.formatDate(firstDay);
+                document.getElementById('toDate').value = this.formatDate(today);
+            }
+
+            formatDate(date) {
+                return date.toISOString().split('T')[0];
+            }
+
+            setupEventListeners() {
+                document.getElementById('searchBtn').addEventListener('click', () => this.search());
+                document.getElementById('printBtn').addEventListener('click', () => this.printReport());
+                document.getElementById('resetBtn').addEventListener('click', () => this.resetFilters());
+                document.getElementById('exportBtn').addEventListener('click', () => this.exportToExcel());
+                document.getElementById('debugBtn').addEventListener('click', () => this.toggleDebug());
+                document.getElementById('prevBtn').addEventListener('click', () => this.previousInvoice());
+                document.getElementById('nextBtn').addEventListener('click', () => this.nextInvoice());
+                
+                this.filterFields.forEach(field => {
+                    const element = document.getElementById(field);
+                    element.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            this.focusNextField(field);
+                        }
+                    });
+
+                    element.addEventListener('focus', () => {
+                        element.classList.add('focused');
+                    });
+
+                    element.addEventListener('blur', () => {
+                        element.classList.remove('focused');
+                    });
+                });
+            }
+
+            async loadAllData() {
+                try {
+                    await Promise.all([
+                        this.loadStores(),
+                        this.loadSuppliers(),
+                        this.loadItems()
+                    ]);
+                    this.logDebug('✅ تم تحميل جميع البيانات بنجاح');
+                } catch (error) {
+                    this.logDebug('❌ فشل في تحميل بعض البيانات: ' + error.message);
+                    this.showError('فشل في تحميل البيانات الأساسية. يرجى تحديث الصفحة.');
+                }
+            }
+
+            async loadStores() {
+                try {
+                    this.logDebug('🔄 جاري تحميل المخازن من Supabase...');
+                    
+                    // استعلام بسيط بدون ترتيب لمعرفة هيكل الجدول
+                    const { data, error } = await supabase
+                        .from('stores')
+                        .select('*')
+                        .limit(5);
+                    
+                    if (error) {
+                        throw new Error(`Supabase Error: ${error.message}`);
+                    }
+                    
+                    this.logDebug('📦 بيانات المخازن المستلمة:', data);
+                    
+                    if (!Array.isArray(data)) {
+                        throw new Error('البيانات المستلمة ليست مصفوفة');
+                    }
+                    
+                    // عرض هيكل البيانات لمعرفة الحقول المتاحة
+                    if (data.length > 0) {
+                        this.logDebug('🔍 هيكل جدول المخازن:', Object.keys(data[0]));
+                    }
+                    
+                    // جلب جميع المخازن
+                    const { data: allStores, error: allError } = await supabase
+                        .from('stores')
+                        .select('*');
+                    
+                    if (allError) {
+                        throw new Error(`Supabase Error: ${allError.message}`);
+                    }
+                    
+                    this.stores = allStores || [];
+                    this.populateStores();
+                    this.logDebug(`✅ تم تحميل ${this.stores.length} فرع من Supabase`);
+                    
+                } catch (error) {
+                    this.logDebug(`❌ فشل تحميل المخازن من Supabase: ${error.message}`);
+                    this.showError('فشل في تحميل قائمة المخازن من Supabase');
+                    this.stores = [];
+                    this.populateStores();
+                }
+            }
+
+            populateStores() {
+                const fromSelect = document.getElementById('fromStore');
+                const toSelect = document.getElementById('toStore');
+
+                // حفظ القيم المحددة حالياً
+                const currentFromValue = fromSelect.value;
+                const currentToValue = toSelect.value;
+
+                fromSelect.innerHTML = '<option value="">جميع المخازن</option>';
+                toSelect.innerHTML = '<option value="">جميع المخازن</option>';
+
+                let addedCount = 0;
+                this.stores.forEach(store => {
+                    // استخدام الحقول الفعلية من البيانات
+                    const storeId = store.store_id || store.id || store.store_code || store.code;
+                    const storeName = store.store_nm || store.name || store.store_name || store.store_nm_ar || `فرع ${storeId}`;
+                    
+                    this.logDebug(`🔍 فحص فرع:`, store);
+                    
+                    if (storeId) {
+                        const option1 = new Option(storeName, storeId);
+                        const option2 = new Option(storeName, storeId);
+                        
+                        fromSelect.add(option1);
+                        toSelect.add(option2);
+                        addedCount++;
+                        this.logDebug(`✅ تمت إضافة فرع: ${storeName} (${storeId})`);
+                    } else {
+                        this.logDebug(`❌ فرع غير صالح:`, store);
+                    }
+                });
+
+                // استعادة القيم المحددة إذا كانت لا تزال موجودة
+                if (currentFromValue && fromSelect.querySelector(`option[value="${currentFromValue}"]`)) {
+                    fromSelect.value = currentFromValue;
+                }
+                if (currentToValue && toSelect.querySelector(`option[value="${currentToValue}"]`)) {
+                    toSelect.value = currentToValue;
+                }
+
+                this.logDebug(`📋 تم تعبئة ${addedCount} فرع في القوائم`);
+            }
+
+            async loadSuppliers() {
+                try {
+                    this.logDebug('🔄 جاري تحميل الموردين من Supabase...');
+                    
+                    // استعلام بسيط بدون ترتيب لمعرفة هيكل الجدول
+                    const { data, error } = await supabase
+                        .from('suppliers')
+                        .select('*')
+                        .limit(5);
+                    
+                    if (error) {
+                        throw new Error(`Supabase Error: ${error.message}`);
+                    }
+                    
+                    this.logDebug('📦 بيانات الموردين المستلمة:', data);
+                    
+                    if (!Array.isArray(data)) {
+                        throw new Error('البيانات المستلمة ليست مصفوفة');
+                    }
+                    
+                    // عرض هيكل البيانات لمعرفة الحقول المتاحة
+                    if (data.length > 0) {
+                        this.logDebug('🔍 هيكل جدول الموردين:', Object.keys(data[0]));
+                    }
+                    
+                    // جلب جميع الموردين
+                    const { data: allSuppliers, error: allError } = await supabase
+                        .from('suppliers')
+                        .select('*');
+                    
+                    if (allError) {
+                        throw new Error(`Supabase Error: ${allError.message}`);
+                    }
+                    
+                    this.suppliers = allSuppliers || [];
+                    this.populateSuppliers();
+                    this.logDebug(`✅ تم تحميل ${this.suppliers.length} مورد من Supabase`);
+                    
+                } catch (error) {
+                    this.logDebug(`❌ فشل تحميل الموردين من Supabase: ${error.message}`);
+                    this.showError('فشل في تحميل قائمة الموردين من Supabase');
+                    this.suppliers = [];
+                    this.populateSuppliers();
+                }
+            }
+
+            populateSuppliers() {
+                const fromSelect = document.getElementById('fromSupplier');
+                const toSelect = document.getElementById('toSupplier');
+
+                // حفظ القيم المحددة حالياً
+                const currentFromValue = fromSelect.value;
+                const currentToValue = toSelect.value;
+
+                fromSelect.innerHTML = '<option value="">جميع الموردين</option>';
+                toSelect.innerHTML = '<option value="">جميع الموردين</option>';
+
+                let addedCount = 0;
+                
+                if (this.suppliers && this.suppliers.length > 0) {
+                    this.logDebug(`🔍 فحص ${this.suppliers.length} مورد للعرض`);
+                    
+                    this.suppliers.forEach((supplier, index) => {
+                        // استخدام الحقول الفعلية من البيانات
+                        const supplierId = supplier.supplier_id || supplier.id || supplier.supplier_code || supplier.code || (index + 1);
+                        const supplierName = supplier.supplier_nm || supplier.name || supplier.supplier_name || supplier.supplier_nm_ar || `مورد ${supplierId}`;
+                        
+                        this.logDebug(`🔍 المورد ${index + 1} - ID: ${supplierId}, Name: ${supplierName}`, supplier);
+                        
+                        if (supplierId) {
+                            const option1 = new Option(supplierName, supplierId);
+                            const option2 = new Option(supplierName, supplierId);
+                            
+                            fromSelect.add(option1);
+                            toSelect.add(option2);
+                            addedCount++;
+                            this.logDebug(`✅ تمت إضافة مورد: ${supplierName} (${supplierId})`);
+                        } else {
+                            this.logDebug(`❌ مورد غير صالح:`, supplier);
+                        }
+                    });
+                } else {
+                    this.logDebug('❌ لا توجد بيانات موردين متاحة');
+                }
+
+                // استعادة القيم المحددة إذا كانت لا تزال موجودة
+                if (currentFromValue && fromSelect.querySelector(`option[value="${currentFromValue}"]`)) {
+                    fromSelect.value = currentFromValue;
+                }
+                if (currentToValue && toSelect.querySelector(`option[value="${currentToValue}"]`)) {
+                    toSelect.value = currentToValue;
+                }
+
+                this.logDebug(`📋 تم تعبئة ${addedCount} مورد في القوائم`);
+            }
+           
+            async loadItems() {
+                try {
+                    this.logDebug('🔄 جاري تحميل الأصناف من Supabase...');
+                    
+                    const { data, error } = await supabase
+                        .from('items')
+                        .select('*');
+                    
+                    if (error) {
+                        throw new Error(`Supabase Error: ${error.message}`);
+                    }
+                    
+                    this.logDebug('📦 بيانات الأصناف المستلمة:', data);
+                    
+                    if (!Array.isArray(data)) {
+                        throw new Error('البيانات المستلمة ليست مصفوفة');
+                    }
+                    
+                    this.items = data;
+                    this.populateItems();
+                    this.logDebug(`✅ تم تحميل ${this.items.length} صنف من Supabase`);
+                    
+                } catch (error) {
+                    this.logDebug(`❌ فشل تحميل الأصناف من Supabase: ${error.message}`);
+                    this.showError('فشل في تحميل قائمة الأصناف من Supabase');
+                    this.items = [];
+                    this.populateItems();
+                }
+            }
+
+            populateItems() {
+                const fromSelect = document.getElementById('fromItem');
+                const toSelect = document.getElementById('toItem');
+
+                // حفظ القيم المحددة حالياً
+                const currentFromValue = fromSelect.value;
+                const currentToValue = toSelect.value;
+
+                fromSelect.innerHTML = '<option value="">جميع الأصناف</option>';
+                toSelect.innerHTML = '<option value="">جميع الأصناف</option>';
+
+                let addedCount = 0;
+                this.items.forEach(item => {
+                    // استخدام الحقول الفعلية من البيانات
+                    const itemId = item.item_id || item.id || item.item_code || item.code;
+                    const itemName = item.item_nm || item.name || item.item_name || item.item_nm_ar || `صنف ${itemId}`;
+                    
+                    this.logDebug(`🔍 فحص صنف:`, item);
+                    
+                    if (itemId) {
+                        const option1 = new Option(itemName, itemId);
+                        const option2 = new Option(itemName, itemId);
+                        
+                        fromSelect.add(option1);
+                        toSelect.add(option2);
+                        addedCount++;
+                        this.logDebug(`✅ تمت إضافة صنف: ${itemName} (${itemId})`);
+                    } else {
+                        this.logDebug(`❌ صنف غير صالح:`, item);
+                    }
+                });
+
+                // استعادة القيم المحددة إذا كانت لا تزال موجودة
+                if (currentFromValue && fromSelect.querySelector(`option[value="${currentFromValue}"]`)) {
+                    fromSelect.value = currentFromValue;
+                }
+                if (currentToValue && toSelect.querySelector(`option[value="${currentToValue}"]`)) {
+                    toSelect.value = currentToValue;
+                }
+
+                this.logDebug(`📋 تم تعبئة ${addedCount} صنف في القوائم`);
+            }
+
+            setupKeyboardNavigation() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.previousInvoice();
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        this.nextInvoice();
+                    }
+                });
+            }
+
+            setupPrintDate() {
+                const now = new Date();
+                const printDate = document.getElementById('printDate');
+                if (printDate) {
+                    printDate.textContent = `تاريخ الطباعة: ${now.toLocaleDateString('ar-EG')}`;
+                }
+            }
+
+            focusNextField(currentField) {
+                const currentIndex = this.filterFields.indexOf(currentField);
+                if (currentIndex < this.filterFields.length - 1) {
+                    const nextField = document.getElementById(this.filterFields[currentIndex + 1]);
+                    nextField.focus();
+                    nextField.classList.add('focused');
+                } else {
+                    document.getElementById('searchBtn').focus();
+                }
+            }
+
+            async search() {
+                const filters = this.getFilters();
+                
+                if (filters.fromDate && filters.toDate && filters.fromDate > filters.toDate) {
+                    alert('❌ تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+                    return;
+                }
+
+                this.showLoading();
+                this.logDebug('🔍 بدء البحث في Supabase...');
+
+                try {
+                    // بناء استعلام Supabase مع الحقول الصحيحة
+                    let query = supabase
+                        .from('purchases_return')
+                        .select('*');
+                    
+                    // تطبيق الفلاتر بناءً على هيكل الجدول الفعلي
+                    if (filters.fromDate) {
+                        query = query.gte('tran_date', filters.fromDate + 'T00:00:00');
+                    }
+                    if (filters.toDate) {
+                        query = query.lte('tran_date', filters.toDate + 'T23:59:59');
+                    }
+                    if (filters.fromStore) {
+                        query = query.eq('store_id', parseInt(filters.fromStore));
+                    }
+                    if (filters.toStore) {
+                        query = query.eq('store_id', parseInt(filters.toStore));
+                    }
+                    if (filters.fromInvoice) {
+                        query = query.gte('invoice_id', parseInt(filters.fromInvoice));
+                    }
+                    if (filters.toInvoice) {
+                        query = query.lte('invoice_id', parseInt(filters.toInvoice));
+                    }
+                    if (filters.fromSupplier) {
+                        query = query.eq('supplierid', filters.fromSupplier);
+                    }
+                    if (filters.toSupplier) {
+                        query = query.eq('supplierid', filters.toSupplier);
+                    }
+                    if (filters.fromItem) {
+                        query = query.eq('item_id', filters.fromItem);
+                    }
+                    if (filters.toItem) {
+                        query = query.eq('item_id', filters.toItem);
+                    }
+
+                    const { data, error } = await query;
+
+                    if (error) {
+                        throw new Error(`Supabase Error: ${error.message}`);
+                    }
+                    
+                    this.logDebug(`📊 تم جلب ${Array.isArray(data) ? data.length : 0} صف من مرتجعات المشتريات`);
+                    
+                    // تجميع البيانات حسب الفاتورة (tran_date + store_id + invoice_id)
+                    this.currentResults = this.groupInvoicesByTransaction(data);
+                    this.currentIndex = 0;
+                    
+                    if (this.currentResults.length > 0) {
+                        this.displayResults();
+                        this.displaySummary();
+                        this.logDebug(`✅ تم العثور على ${this.currentResults.length} فاتورة مرتجع`);
+                    } else {
+                        this.showNoResults();
+                        this.logDebug('❌ لم يتم العثور على نتائج');
+                    }
+                } catch (error) {
+                    console.error('Error searching:', error);
+                    this.logDebug(`❌ خطأ في البحث: ${error.message}`);
+                    this.showError('فشل في جلب البيانات من Supabase');
+                }
+            }
+
+            // دالة جديدة لتجميع البيانات حسب الفاتورة
+            groupInvoicesByTransaction(data) {
+                if (!Array.isArray(data)) return [];
+                
+                const grouped = {};
+                
+                data.forEach(row => {
+                    const key = `${row.tran_date}_${row.store_id}_${row.invoice_id}`;
+                    
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            tran_date: row.tran_date,
+                            store_id: row.store_id,
+                            invoice_id: row.invoice_id,
+                            supplierid: row.supplierid,
+                            supplier_name: row.supplier_name,
+                            original_invoice_id: row.original_invoice_id,
+                            return_reason: row.return_reason,
+                            return_notes: row.return_notes,
+                            user_id: row.user_id,
+                            user_stamp: row.user_stamp,
+                            payment_method: row.payment_method,
+                            due_date: row.due_date,
+                            items: []
+                        };
+                    }
+                    
+                    // إضافة الصنف إلى الفاتورة
+                    grouped[key].items.push({
+                        ser_no: row.ser_no,
+                        item_id: row.item_id,
+                        item_nm: row.item_nm,
+                        item_qty: row.item_qty,
+                        buy_price: row.buy_price,
+                        total_price: row.total_price,
+                        net_buy_price: row.net_buy_price,
+                        total_net_buy_price: row.total_net_buy_price,
+                        return_reason: row.return_reason,
+                        batch_no: row.batch_no,
+                        expiry_date: row.expiry_date,
+                        unit_type: row.unit_type,
+                        units_per_package: row.units_per_package,
+                        sale_unit: row.sale_unit,
+                        conversion_factor: row.conversion_factor,
+                        converted_qty: row.converted_qty,
+                        rate: row.rate,
+                        unit: row.unit,
+                        discount_type: row.discount_type,
+                        discount_value: row.discount_value,
+                        mndop: row.mndop,
+                        sale_price1: row.sale_price1,
+                        previously_returned_qty: row.previously_returned_qty
+                    });
+                });
+                
+                return Object.values(grouped);
+            }
+
+            getFilters() {
+                return {
+                    fromDate: document.getElementById('fromDate').value,
+                    toDate: document.getElementById('toDate').value,
+                    fromStore: document.getElementById('fromStore').value,
+                    toStore: document.getElementById('toStore').value,
+                    fromInvoice: document.getElementById('fromInvoice').value,
+                    toInvoice: document.getElementById('toInvoice').value,
+                    fromSupplier: document.getElementById('fromSupplier').value,
+                    toSupplier: document.getElementById('toSupplier').value,
+                    fromItem: document.getElementById('fromItem').value,
+                    toItem: document.getElementById('toItem').value
+                };
+            }
+
+            getStoreName(storeId) {
+                const store = this.stores.find(s => 
+                    (s.store_id || s.id || s.store_code || s.code) == storeId
+                );
+                return store ? (store.store_nm || store.name || store.store_name || store.store_nm_ar || `فرع ${storeId}`) : storeId;
+            }
+
+            getSupplierName(supplierId) {
+                const supplier = this.suppliers.find(s => 
+                    (s.supplier_id || s.id || s.supplier_code || s.code) == supplierId
+                );
+                return supplier ? (supplier.supplier_nm || supplier.name || supplier.supplier_name || supplier.supplier_nm_ar || `مورد ${supplierId}`) : `مورد ${supplierId}`;
+            }
+
+            getItemName(itemId) {
+                const item = this.items.find(i => 
+                    (i.item_id || i.id || i.item_code || i.code) == itemId
+                );
+                return item ? (item.item_nm || item.name || item.item_name || item.item_nm_ar || `صنف ${itemId}`) : `صنف ${itemId}`;
+            }
+
+            displayResults() {
+                this.hideAllSections();
+                document.getElementById('resultsSection').style.display = 'block';
+                this.displayCurrentInvoice();
+            }
+
+            displayCurrentInvoice() {
+                if (this.currentResults.length === 0) return;
+
+                const invoice = this.currentResults[this.currentIndex];
+                const detailsDiv = document.getElementById('invoiceDetails');
+                
+                document.getElementById('currentInvoice').textContent = this.currentIndex + 1;
+                document.getElementById('totalInvoicesCount').textContent = this.currentResults.length;
+
+                const storeName = this.getStoreName(invoice.store_id);
+                const supplierName = invoice.supplier_name || this.getSupplierName(invoice.supplierid);
+
+                // تنسيق التاريخ
+                const tranDate = new Date(invoice.tran_date);
+                const formattedDate = tranDate.toLocaleDateString('ar-EG');
+
+                detailsDiv.innerHTML = `
+                    <div class="invoice-header">
+                        <div class="invoice-field">
+                            <label>📅 تاريخ المعاملة:</label>
+                            <span>${formattedDate}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label>🧾 رقم فاتورة المرتجع:</label>
+                            <span>${invoice.invoice_id || 'غير محدد'}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label>📄 رقم الفاتورة الأصلية:</label>
+                            <span>${invoice.original_invoice_id || 'غير محدد'}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label>🏪 الفرع:</label>
+                            <span>${storeName}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label>👤 المورد:</label>
+                            <span>${supplierName}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label>📝 طريقة الدفع:</label>
+                            <span>${invoice.payment_method || 'نقدي'}</span>
+                        </div>
+                    </div>
+
+                    ${invoice.return_reason ? `
+                        <div style="margin: 10px 0; padding: 10px; background: #fff3cd; border-radius: 5px;">
+                            <strong>📋 سبب المرتجع:</strong> ${invoice.return_reason}
+                        </div>
+                    ` : ''}
+
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>كود الصنف</th>
+                                <th>اسم الصنف</th>
+                                <th>الكمية</th>
+                                <th>سعر الشراء</th>
+                                <th>الإجمالي</th>
+                                <th>الدفعة</th>
+                                <th>الصلاحية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${invoice.items.map((item, index) => `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${item.item_id || 'غير محدد'}</td>
+                                    <td>${item.item_nm || this.getItemName(item.item_id)}</td>
+                                    <td>${(parseFloat(item.item_qty) || 0).toFixed(2)} ${item.unit_type || 'قطعة'}</td>
+                                    <td>${(parseFloat(item.buy_price) || 0).toFixed(2)}</td>
+                                    <td>${(parseFloat(item.total_price) || 0).toFixed(2)}</td>
+                                    <td>${item.batch_no || '-'}</td>
+                                    <td>${item.expiry_date || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div class="totals-section">
+                        <div class="total-item">
+                            <div>عدد الأصناف</div>
+                            <div class="total-value">${invoice.items.length}</div>
+                        </div>
+                        <div class="total-item">
+                            <div>إجمالي الكميات</div>
+                            <div class="total-value">${invoice.items.reduce((sum, item) => sum + (parseFloat(item.item_qty) || 0), 0).toFixed(2)}</div>
+                        </div>
+                        <div class="total-item">
+                            <div>إجمالي القيمة</div>
+                            <div class="total-value">${invoice.items.reduce((sum, item) => sum + (parseFloat(item.total_price) || 0), 0).toFixed(2)}</div>
+                        </div>
+                        <div class="total-item">
+                            <div>الصافي الإجمالي</div>
+                            <div class="total-value">${invoice.items.reduce((sum, item) => sum + (parseFloat(item.total_net_buy_price) || 0), 0).toFixed(2)}</div>
+                        </div>
+                    </div>
+
+                    ${invoice.return_notes ? `
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <strong>📝 ملاحظات:</strong> ${invoice.return_notes}
+                        </div>
+                    ` : ''}
+                `;
+            }
+
+            displaySummary() {
+                const totalInvoices = this.currentResults.length;
+                const totalItems = this.currentResults.reduce((sum, inv) => sum + inv.items.length, 0);
+                const totalQuantity = this.currentResults.reduce((sum, inv) => 
+                    sum + inv.items.reduce((itemSum, item) => itemSum + (parseFloat(item.item_qty) || 0), 0), 0);
+                const totalAmount = this.currentResults.reduce((sum, inv) => 
+                    sum + inv.items.reduce((itemSum, item) => itemSum + (parseFloat(item.total_price) || 0), 0), 0);
+                const totalNetAmount = this.currentResults.reduce((sum, inv) => 
+                    sum + inv.items.reduce((itemSum, item) => itemSum + (parseFloat(item.total_net_buy_price) || 0), 0), 0);
+
+                document.getElementById('totalInvoices').textContent = totalInvoices;
+                document.getElementById('totalItems').textContent = totalItems;
+                document.getElementById('totalQuantity').textContent = totalQuantity.toFixed(2);
+                document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
+
+                document.getElementById('reportSummary').style.display = 'grid';
+            }
+
+            previousInvoice() {
+                if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                    this.displayCurrentInvoice();
+                }
+            }
+
+            nextInvoice() {
+                if (this.currentIndex < this.currentResults.length - 1) {
+                    this.currentIndex++;
+                    this.displayCurrentInvoice();
+                }
+            }
+
+            showLoading() {
+                this.hideAllSections();
+                document.getElementById('loading').style.display = 'block';
+            }
+
+            showNoResults() {
+                this.hideAllSections();
+                document.getElementById('noResults').style.display = 'block';
+            }
+
+            showError(message) {
+                alert(`❌ ${message}`);
+            }
+
+            hideAllSections() {
+                document.getElementById('resultsSection').style.display = 'none';
+                document.getElementById('noResults').style.display = 'none';
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('reportSummary').style.display = 'none';
+            }
+
+            resetFilters() {
+                this.filterFields.forEach(field => {
+                    const element = document.getElementById(field);
+                    if (element.tagName === 'SELECT') {
+                        element.value = '';
+                    } else {
+                        element.value = '';
+                    }
+                });
+                this.setDefaultDates();
+                this.hideAllSections();
+                document.getElementById('fromDate').focus();
+            }
+
+            printReport() {
+                window.print();
+            }
+
+            exportToExcel() {
+                if (this.currentResults.length === 0) {
+                    alert('لا توجد بيانات لتصديرها');
+                    return;
+                }
+                
+                alert(`سيتم تصدير ${this.currentResults.length} فاتورة إلى ملف Excel`);
+            }
+
+            logDebug(message, data = null) {
+                const debugInfo = document.getElementById('debugInfo');
+                const timestamp = new Date().toLocaleTimeString();
+                let logMessage = `<div>[${timestamp}] ${message}</div>`;
+                
+                if (data) {
+                    logMessage += `<div style="margin-left: 10px; color: #666;">${JSON.stringify(data, null, 2)}</div>`;
+                }
+                
+                debugInfo.innerHTML += logMessage;
+                debugInfo.scrollTop = debugInfo.scrollHeight;
+                console.log(message, data || '');
+            }
+
+            toggleDebug() {
+                const debugInfo = document.getElementById('debugInfo');
+                debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const report = new PurchaseReturnReport();
+            window.purchaseReturnReport = report;
+        });
+    </script>
+</body>
+</html>

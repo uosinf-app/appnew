@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>🏬 ادخال الفروع</title>
+  <link rel="stylesheet" href="./stylestor.css">
+  <!-- تحميل ملفات الإعداد أولاً -->
+  <script src="./config-env.js"></script>
+  <script src="./config.js"></script>
+  <!-- إضافة Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .connection-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-size: 12px;
+      border-left: 4px solid #28a745;
+    }
+    .connection-status.supabase {
+      border-left-color: #28a745;
+    }
+    .connection-status.local {
+      border-left-color: #dc3545;
+    }
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .switch-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-left: 10px;
+      font-size: 12px;
+    }
+    .switch-btn:hover {
+      background: #5a6268;
+    }
+
+    /* تنسيق الموبايل */
+    @media (max-width: 768px) {
+      .connection-status {
+        position: relative;
+        top: 0;
+        left: 0;
+        margin: 0 0 10px 0;
+        width: 100%;
+        border-radius: 0;
+        border-left: none;
+        border-bottom: 3px solid #28a745;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+      }
+      
+      .connection-status.local {
+        border-bottom: 3px solid #dc3545;
+        border-left: none;
+      }
+      
+      .connection-status.supabase {
+        border-bottom: 3px solid #28a745;
+        border-left: none;
+      }
+      
+      .switch-btn {
+        margin-left: 0;
+        padding: 8px 12px;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      
+      #statusText {
+        font-size: 11px;
+      }
+      
+      .loading {
+        width: 14px;
+        height: 14px;
+        margin-left: 5px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .connection-status {
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 10px;
+      }
+      
+      .switch-btn {
+        width: 100%;
+        margin-left: 0;
+      }
+      
+      #statusText {
+        text-align: center;
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .connection-status {
+        padding: 6px 8px;
+      }
+      
+      .switch-btn {
+        padding: 6px 8px;
+        font-size: 10px;
+      }
+      
+      #statusText {
+        font-size: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- شريط حالة الاتصال -->
+  <div id="connectionStatus" class="connection-status">
+    🔄 جاري التحميل...
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h2>🏬 إدخال الفروع</h2>
+    </div>
+
+    <div class="card">
+      <form id="storeForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="store_id">كود الفرع:</label>
+            <input type="number" id="store_id" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="store_name">اسم الفرع:</label>
+            <input type="text" id="store_name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="address">العنوان:</label>
+            <input type="text" id="address">
+          </div>
+          
+          <div class="form-group">
+            <label for="phone">رقم الهاتف:</label>
+            <input type="text" id="phone">
+          </div>
+          
+          <div class="form-group">
+            <label for="user_id">رقم المستخدم:</label>
+            <input type="number" id="user_id">
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 حفظ</button>
+          <button type="button" id="importBtn" class="btn btn-secondary">📥 استيراد من ملف</button>
+          <button type="button" onclick="switchConnectionMode()" class="btn btn-secondary">🔀 تبديل الوضع</button>
+          <input id="importInput" type="file" accept=".csv,.xls,.xlsx" style="display:none">
+        </div>
+      </form>
+    </div>
+
+    <div class="controls-row">
+      <input type="text" id="searchBox" class="search-box" placeholder="🔎 ابحث عن فرع بالاسم أو الكود...">
+      
+      <div style="display: flex; gap: 8px;">
+        <select id="pageSizeSelector" class="export-select">
+          <option value="10">عرض 10</option>
+          <option value="20" selected>عرض 20</option>
+          <option value="50">عرض 50</option>
+          <option value="all">عرض الكل</option>
+        </select>
+        
+        <select id="exportSelect" class="export-select">
+          <option value="">📤 تصدير...</option>
+          <option value="csv">🧾 CSV</option>
+          <option value="xls">📘 XLS</option>
+          <option value="xlsx">📗 XLSX</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="storesTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>كود الفرع</th>
+            <th>الاسم</th>
+            <th>العنوان</th>
+            <th>الهاتف</th>
+            <th>رقم المستخدم</th>
+            <th>التاريخ</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="pagination" class="pagination"></div>
+  </div>
+
+  <script>
+    // ⚡ التهيئة العالمية
+    const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+    
+    let supabase;
+    let allStores = [];
+    let currentPage = 1;
+    let itemsPerPage = 20;
+    let isEditing = false;
+    let originalStoreId = null;
+
+    // ✅ الحصول على وضع الاتصال الحالي
+    function getConnectionMode() {
+        return localStorage.getItem('connection_mode') || 
+               sessionStorage.getItem('connection_mode') || 
+               'auto';
+    }
+
+    // ✅ تحديث شريط حالة الاتصال
+    function updateConnectionStatus() {
+        const statusDiv = document.getElementById('connectionStatus');
+        const mode = getConnectionMode();
+        
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            statusDiv.innerHTML = '🌐 Supabase مباشر <button class="switch-btn" onclick="switchConnectionMode()">تبديل</button>';
+            statusDiv.className = 'connection-status supabase';
+        } else {
+            statusDiv.innerHTML = '🔗 اتصال محلي <button class="switch-btn" onclick="switchConnectionMode()">تبديل</button>';
+            statusDiv.className = 'connection-status local';
+        }
+    }
+
+    // ✅ تبديل وضع الاتصال
+    function switchConnectionMode() {
+        const currentMode = getConnectionMode();
+        const newMode = currentMode === 'supabase' ? 'local' : 'supabase';
+        
+        localStorage.setItem('connection_mode', newMode);
+        sessionStorage.setItem('connection_mode', newMode);
+        
+        updateConnectionStatus();
+        alert(`🔄 تم التبديل إلى: ${newMode === 'supabase' ? 'Supabase مباشر' : 'الاتصال المحلي'}`);
+        
+        // إعادة تحميل البيانات
+        loadStores();
+    }
+
+    // ✅ تهيئة Supabase
+    function initializeSupabase() {
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log('✅ Supabase initialized');
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to initialize Supabase:', error);
+            return false;
+        }
+    }
+
+    // 🚫 منع الضغط على Enter من تنفيذ الحفظ التلقائي
+    const form = document.getElementById("storeForm");
+    form.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const tag = e.target.tagName.toLowerCase();
+        if (tag === "input" || tag === "select" || tag === "textarea") {
+          e.preventDefault();
+
+          const inputs = [...form.querySelectorAll("input, select, textarea")];
+          const idx = inputs.indexOf(e.target);
+
+          if (idx > -1 && idx < inputs.length - 1) {
+            inputs[idx + 1].focus();
+          } else {
+            const saveBtn = form.querySelector('button[type="submit"]');
+            if (saveBtn) saveBtn.focus();
+          }
+        }
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // تهيئة Supabase
+      initializeSupabase();
+      
+      // تحديث حالة الاتصال
+      updateConnectionStatus();
+      
+      // تحميل البيانات
+      loadStores();
+      focusStoreId();
+    });
+
+    function focusStoreId() {
+      const input = document.getElementById("store_id");
+      if (input && !isEditing) input.focus();
+    }
+
+    // ✅ تحميل البيانات (تعمل مع كلا الوضعين)
+    async function loadStores() {
+      const statusDiv = document.getElementById('connectionStatus');
+      statusDiv.innerHTML = '🔄 جاري تحميل الفروع... <span class="loading"></span>';
+      
+      try {
+        const mode = getConnectionMode();
+        console.log(`🔄 جاري تحميل الفروع - الوضع: ${mode}`);
+
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            // استخدام Supabase
+            if (!supabase) initializeSupabase();
+            
+            const { data, error } = await supabase
+                .from('stores')
+                .select('*')
+                .order('store_id');
+            
+            if (error) throw error;
+            
+            allStores = data || [];
+            console.log(`✅ تم تحميل ${allStores.length} فرع من Supabase`);
+            statusDiv.innerHTML = `🌐 Supabase - ${allStores.length} فرع <button class="switch-btn" onclick="switchConnectionMode()">تبديل</button>`;
+        } else {
+            // استخدام API التقليدي
+            const apiUrl = appConfig.get('STORES');
+            console.log('🔗 استخدام API التقليدي:', apiUrl);
+            
+            const res = await fetch(apiUrl);
+            if (!res.ok) throw new Error(`خطأ في الخادم: ${res.status}`);
+            
+            allStores = await res.json();
+            console.log(`✅ تم تحميل ${allStores.length} فرع من الخادم المحلي`);
+            statusDiv.innerHTML = `🔗 اتصال محلي - ${allStores.length} فرع <button class="switch-btn" onclick="switchConnectionMode()">تبديل</button>`;
+        }
+        
+        renderTable();
+      } catch (err) {
+        console.error("❌ خطأ في تحميل الفروع:", err);
+        statusDiv.innerHTML = '❌ فشل تحميل الفروع <button class="switch-btn" onclick="switchConnectionMode()">تبديل</button>';
+        
+        // التحول التلقائي إلى Supabase في حالة الفشل
+        if (getConnectionMode() !== 'supabase') {
+            const switchNow = confirm('فشل الاتصال بالخادم المحلي. هل تريد التبديل إلى Supabase؟');
+            if (switchNow) {
+                localStorage.setItem('connection_mode', 'supabase');
+                loadStores();
+            }
+        }
+        
+        allStores = [];
+        renderTable();
+      }
+    }
+
+    // بحث
+    const searchBox = document.getElementById("searchBox");
+    searchBox.addEventListener("input", () => {
+      currentPage = 1;
+      renderTable();
+    });
+
+    function filteredStores() {
+      const q = searchBox.value.trim().toLowerCase();
+      if (!q) return allStores;
+      return allStores.filter(s =>
+        String(s.store_id || "").toLowerCase().includes(q) ||
+        (s.store_name && s.store_name.toLowerCase().includes(q)) ||
+        (s.address && s.address.toLowerCase().includes(q)) ||
+        (s.phone && s.phone.toLowerCase().includes(q))
+      );
+    }
+
+    // عرض الجدول
+    function renderTable() {
+      const stores = filteredStores();
+      const totalPages = Math.ceil(stores.length / (itemsPerPage === "all" ? stores.length : itemsPerPage));
+      const start = itemsPerPage === "all" ? 0 : (currentPage - 1) * itemsPerPage;
+      const end = itemsPerPage === "all" ? stores.length : start + itemsPerPage;
+      const pageStores = stores.slice(start, end);
+
+      const tbody = document.querySelector("#storesTable tbody");
+      tbody.innerHTML = "";
+      
+      pageStores.forEach((s, index) => {
+        const serial = (itemsPerPage === "all") ? (index + 1) : (start + index + 1);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${serial}</td>
+          <td>${s.store_id}</td>
+          <td>${s.store_name}</td>
+          <td>${s.address || ""}</td>
+          <td>${s.phone || ""}</td>
+          <td>${s.user_id || ""}</td>
+          <td>${s.user_stamp ? new Date(s.user_stamp).toLocaleString("ar-EG") : ""}</td>
+          <td class="actions">
+            <button onclick="editStore('${s.store_id}')">✏️</button>
+            <button onclick="deleteStore('${s.store_id}')">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      renderPagination(totalPages);
+      renderCount(stores.length);
+    }
+
+    function renderPagination(totalPages) {
+      const pagination = document.getElementById("pagination");
+      pagination.innerHTML = "";
+      if (itemsPerPage === "all" || totalPages <= 1) return;
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.className = "page-btn" + (i === currentPage ? " active" : "");
+        btn.onclick = () => {
+          currentPage = i;
+          renderTable();
+        };
+        pagination.appendChild(btn);
+      }
+    }
+
+    function renderCount(count) {
+      let countDiv = document.getElementById("storeCount");
+      if (!countDiv) {
+        countDiv = document.createElement("div");
+        countDiv.id = "storeCount";
+        countDiv.style.marginTop = "10px";
+        countDiv.style.fontWeight = "bold";
+        countDiv.style.textAlign = "right";
+        document.getElementById("pagination").after(countDiv);
+      }
+      countDiv.textContent = `عدد الفروع المسجلة: ${count}`;
+    }
+
+    // ✅ حفظ البيانات (تعمل مع كلا الوضعين)
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+
+      const data = {
+        store_id: parseInt(document.getElementById("store_id").value.trim()),
+        store_name: document.getElementById("store_name").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        user_id: document.getElementById("user_id").value.trim() || null
+      };
+
+      // التحقق من الحقول
+      if (!data.store_id) {
+        alert("⚠️ كود الفرع مطلوب");
+        document.getElementById("store_id").focus();
+        return;
+      }
+      if (!data.store_name) {
+        alert("⚠️ اسم الفرع مطلوب");
+        document.getElementById("store_name").focus();
+        return;
+      }
+
+      if (isNaN(data.store_id)) {
+        alert("⚠️ كود الفرع يجب أن يكون رقمًا");
+        document.getElementById("store_id").focus();
+        return;
+      }
+
+      try {
+        const mode = getConnectionMode();
+        console.log(`💾 جاري حفظ الفرع - الوضع: ${mode}`);
+
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            // استخدام Supabase
+            if (!supabase) initializeSupabase();
+            
+            // التحقق من وجود الكود
+            const { data: existingStore, error: checkError } = await supabase
+                .from('stores')
+                .select('store_id')
+                .eq('store_id', data.store_id)
+                .single();
+
+            if (checkError && checkError.code !== 'PGRST116') {
+                throw checkError;
+            }
+
+            if (existingStore && !isEditing) {
+                alert("❌ هذا الكود مسجل مسبقًا، لا يمكن تكراره.");
+                document.getElementById("store_id").focus();
+                return;
+            }
+
+            let result;
+            if (isEditing && existingStore) {
+                // تعديل
+                const { error } = await supabase
+                    .from('stores')
+                    .update(data)
+                    .eq('store_id', data.store_id);
+                
+                if (error) throw error;
+            } else {
+                // إضافة
+                const { error } = await supabase
+                    .from('stores')
+                    .insert([data]);
+                
+                if (error) throw error;
+            }
+            
+            alert("✅ تم حفظ بيانات الفرع بنجاح في Supabase");
+        } else {
+            // استخدام API التقليدي
+            const apiUrl = appConfig.get('STORES');
+            
+            // تحقق من وجود الكود
+            const checkUrl = `${apiUrl}/${encodeURIComponent(data.store_id)}`;
+            const checkRes = await fetch(checkUrl);
+
+            if (checkRes.ok && !isEditing) {
+                alert("❌ هذا الكود مسجل مسبقًا، لا يمكن تكراره.");
+                document.getElementById("store_id").focus();
+                return;
+            }
+
+            if (checkRes.ok && isEditing) {
+                // تعديل
+                const updateRes = await fetch(`${apiUrl}/${encodeURIComponent(data.store_id)}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!updateRes.ok) throw new Error('فشل التعديل');
+            } else if (!checkRes.ok) {
+                // إضافة
+                const addRes = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!addRes.ok) throw new Error('فشل الإضافة');
+            }
+            
+            alert("✅ تم حفظ بيانات الفرع بنجاح");
+        }
+
+        // بعد الحفظ
+        form.reset();
+        isEditing = false;
+        originalStoreId = null;
+        await loadStores();
+        focusStoreId();
+
+      } catch (err) {
+        console.error("❌ خطأ أثناء الحفظ:", err);
+        alert("⚠️ حدث خطأ أثناء الحفظ. تحقق من الاتصال أو القيم المدخلة.");
+      }
+    });
+
+    // ✅ تعديل (تعمل مع كلا الوضعين)
+    async function editStore(id) {
+      try {
+        const mode = getConnectionMode();
+        console.log(`✏️ جاري تحميل بيانات الفرع: ${id} - الوضع: ${mode}`);
+
+        let store;
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            // استخدام Supabase
+            if (!supabase) initializeSupabase();
+            
+            const { data, error } = await supabase
+                .from('stores')
+                .select('*')
+                .eq('store_id', id)
+                .single();
+            
+            if (error) throw error;
+            store = data;
+        } else {
+            // استخدام API التقليدي
+            const apiUrl = appConfig.get('STORES');
+            const res = await fetch(`${apiUrl}/${id}`);
+            if (!res.ok) throw new Error('فشل تحميل البيانات');
+            store = await res.json();
+        }
+        
+        document.getElementById("store_id").value = store.store_id;
+        document.getElementById("store_name").value = store.store_name;
+        document.getElementById("address").value = store.address || "";
+        document.getElementById("phone").value = store.phone || "";
+        document.getElementById("user_id").value = store.user_id || "";
+        isEditing = true;
+        originalStoreId = store.store_id;
+        document.getElementById("store_id").focus();
+        
+        console.log('✅ تم تحميل بيانات الفرع للتعديل');
+      } catch (err) {
+        console.error('❌ خطأ في التعديل:', err);
+        alert('⚠️ فشل في تحميل بيانات الفرع');
+      }
+    }
+
+    // ✅ حذف (تعمل مع كلا الوضعين)
+    async function deleteStore(id) {
+      if (!confirm("هل تريد حذف هذا الفرع؟")) return;
+      
+      try {
+        const mode = getConnectionMode();
+        console.log(`🗑️ جاري حذف الفرع: ${id} - الوضع: ${mode}`);
+
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            // استخدام Supabase
+            if (!supabase) initializeSupabase();
+            
+            const { error } = await supabase
+                .from('stores')
+                .delete()
+                .eq('store_id', id);
+            
+            if (error) throw error;
+        } else {
+            // استخدام API التقليدي
+            const apiUrl = appConfig.get('STORES');
+            const res = await fetch(`${apiUrl}/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error('فشل الحذف');
+        }
+        
+        await loadStores();
+        alert('✅ تم حذف الفرع بنجاح');
+      } catch (err) {
+        console.error('❌ خطأ في الحذف:', err);
+        alert('⚠️ فشل في حذف الفرع');
+      }
+    }
+
+    // 📥 استيراد ملف (تعمل مع كلا الوضعين)
+    const importBtn = document.getElementById("importBtn");
+    const importInput = document.getElementById("importInput");
+    
+    importBtn.addEventListener("click", () => importInput.click());
+    importInput.addEventListener("change", async () => {
+      const file = importInput.files[0];
+      if (!file) return;
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      importBtn.disabled = true;
+      importBtn.textContent = "⏳ جاري الاستيراد...";
+      
+      try {
+        const mode = getConnectionMode();
+        console.log('📥 جاري استيراد الملف:', file.name, '- الوضع:', mode);
+
+        if (mode === 'supabase' || (mode === 'auto' && !window.APP_CONFIG?.IS_LOCAL)) {
+            alert('ℹ️ استيراد الملفات غير متاح في وضع Supabase المباشر');
+            return;
+        }
+
+        const apiUrl = appConfig.get('STORES');
+        const importUrl = `${apiUrl}/import`;
+        const res = await fetch(importUrl, { method: "POST", body: formData });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText || 'فشل الاستيراد');
+        }
+        
+        await loadStores();
+        alert("✅ تم استيراد الملف بنجاح");
+      } catch (err) {
+        console.error("⚠️ خطأ أثناء الاستيراد:", err);
+        alert(`❌ فشل في استيراد الملف: ${err.message}`);
+      } finally {
+        importInput.value = "";
+        importBtn.disabled = false;
+        importBtn.textContent = "📥 استيراد من ملف";
+      }
+    });
+
+    // 📤 تصدير
+    const exportSelect = document.getElementById("exportSelect");
+    exportSelect.addEventListener("change", () => {
+      const fmt = exportSelect.value;
+      if (!fmt) return;
+      exportStores(fmt);
+      exportSelect.value = "";
+    });
+
+    function exportStores(format) {
+      const stores = filteredStores();
+      const start = itemsPerPage === "all" ? 0 : (currentPage - 1) * itemsPerPage;
+      const end = itemsPerPage === "all" ? stores.length : start + itemsPerPage;
+      const pageStores = stores.slice(start, end);
+
+      if (!pageStores.length) {
+        alert("لا توجد بيانات لتصديرها!");
+        return;
+      }
+
+      const headers = ["#", "كود الفرع", "اسم الفرع", "العنوان", "الهاتف", "رقم المستخدم", "تاريخ التسجيل"];
+      const rows = pageStores.map((s, i) => [
+        (itemsPerPage === "all" ? (i + 1) : (start + i + 1)),
+        s.store_id, s.store_name, s.address || "", s.phone || "", s.user_id || "", s.user_stamp || ""
+      ]);
+
+      const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "");
+      link.href = URL.createObjectURL(blob);
+      link.download = `stores_${timestamp}.${format}`;
+      link.click();
+    }
+
+    // 🔢 تغيير عدد الصفوف
+    const pageSizeSelector = document.getElementById("pageSizeSelector");
+    pageSizeSelector.addEventListener("change", () => {
+      const val = pageSizeSelector.value;
+      itemsPerPage = val === "all" ? "all" : parseInt(val, 10);
+      currentPage = 1;
+      renderTable();
+    });
+  </script>
+</body>
+</html>

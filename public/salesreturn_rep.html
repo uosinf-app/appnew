@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📊 تقرير مرتجع المبيعات</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- إضافة Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+    .connection-status {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-size: 12px;
+    }
+    .connection-status.supabase {
+        border-left: 4px solid #28a745;
+    }
+    .connection-status.offline {
+        border-left: 4px solid #dc3545;
+    }
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+  
+    :root {
+      --primary: #5d7fe3;
+      --primary-dark: #4a6bd4;
+      --primary-light: #f0f4ff;
+      --secondary: #8a5bd6;
+      --success: #4cc9f0;
+      --warning: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --border: #dee2e6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e6ecff 0%, #f0f4ff 100%);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 15px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #5d7fe3 0%, #8a5bd6 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px 12px 0 0;
+      margin-bottom: 0;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .filters-card {
+      background: white;
+      border-radius: 0 0 12px 12px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.9rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      transition: var(--transition);
+      background-color: var(--light);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(93, 127, 227, 0.2);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #7a4bc4;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      background: white;
+      margin-bottom: 20px;
+      position: relative;
+      min-height: 200px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      min-width: 1200px;
+    }
+
+    th {
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    tr:hover {
+      background-color: rgba(93, 127, 227, 0.05);
+    }
+
+    .summary-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      text-align: center;
+    }
+
+    .summary-item {
+      padding: 15px;
+      border-radius: 8px;
+      background: var(--primary-light);
+    }
+
+    .summary-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin: 5px 0;
+    }
+
+    .summary-label {
+      font-size: 0.9rem;
+      color: var(--gray);
+      font-weight: 600;
+    }
+
+    /* مؤشر التحميل */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      border-radius: 10px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* معالجة الأخطاء */
+    .error-message {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: center;
+      border-left: 4px solid #f44336;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      color: var(--border);
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .header {
+        padding: 15px;
+      }
+      
+      h2 {
+        font-size: 1.4rem;
+      }
+      
+      .filters-card {
+        padding: 15px;
+      }
+      
+      .filters-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .actions-row {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
+      
+      .connection-status {
+        position: relative;
+        top: 0;
+        left: 0;
+        margin-bottom: 15px;
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      
+      .filters-card, .actions-row, .summary-card, .connection-status {
+        display: none;
+      }
+      
+      .header {
+        background: white !important;
+        color: black !important;
+        border-bottom: 2px solid #000;
+      }
+      
+      table {
+        box-shadow: none;
+      }
+      
+      th {
+        background: #f8f9fa !important;
+        color: black !important;
+        border: 1px solid #000;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- شريط حالة الاتصال -->
+  <div class="connection-status offline" id="connectionStatus">
+    <span class="status-dot disconnected"></span>
+    <span id="statusText">جارٍ الاتصال...</span>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h2>📊 تقرير مرتجع المبيعات</h2>
+    </div>
+
+    <div class="filters-card">
+      <div class="filters-grid">
+        <div class="form-group">
+          <label for="fromDate">من تاريخ:</label>
+          <input type="date" id="fromDate">
+        </div>
+        
+        <div class="form-group">
+          <label for="toDate">إلى تاريخ:</label>
+          <input type="date" id="toDate">
+        </div>
+        
+        <div class="form-group">
+          <label for="storeFrom">من مخزن:</label>
+          <select id="storeFrom">
+            <option value="">جميع المخازن</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="storeTo">إلى مخزن:</label>
+          <select id="storeTo">
+            <option value="">جميع المخازن</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="customer">العميل:</label>
+          <select id="customer">
+            <option value="">جميع العملاء</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="item">الصنف:</label>
+          <select id="item">
+            <option value="">جميع الأصناف</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="actions-row">
+        <button onclick="loadReport()" class="btn btn-primary" id="loadReportBtn">
+          <i class="fas fa-search"></i> عرض التقرير
+        </button>
+        <button onclick="printReport()" class="btn btn-outline">
+          <i class="fas fa-print"></i> طباعة
+        </button>
+        <select id="exportFormat" class="btn btn-outline" style="padding: 10px 12px;">
+          <option value="">📤 تصدير...</option>
+          <option value="csv">CSV</option>
+          <option value="excel">Excel</option>
+          <option value="pdf">PDF</option>
+        </select>
+        <button onclick="resetFilters()" class="btn btn-outline">
+          <i class="fas fa-broom"></i> مسح الفلاتر
+        </button>
+      </div>
+    </div>
+
+    <div class="table-container" id="tableContainer">
+      <!-- مؤشر التحميل -->
+      <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+      </div>
+      
+      <!-- رسالة الخطأ -->
+      <div id="errorMessage" class="error-message" style="display: none;"></div>
+      
+      <!-- حالة عدم وجود بيانات -->
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <i class="fas fa-inbox"></i>
+        <h3>لا توجد بيانات</h3>
+        <p>لم يتم العثور على أي مرتجعات تطابق معايير البحث المحددة.</p>
+      </div>
+      
+      <table id="reportTable">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>المخزن</th>
+            <th>العميل</th>
+            <th>رقم الفاتورة</th>
+            <th>كود الصنف</th>
+            <th>اسم الصنف</th>
+            <th>الكمية</th>
+            <th>سعر البيع</th>
+            <th>الخصم</th>
+            <th>الإجمالي</th>
+            <th>سبب الإرجاع</th>
+            <th>المستخدم</th>
+            <th>الدفعة</th>
+            <th>تاريخ الصلاحية</th>
+            <th>نوع البيع</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="summary-label">إجمالي المرتجعات</div>
+          <div class="summary-value" id="totalReturns">0</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">إجمالي الكمية</div>
+          <div class="summary-value" id="totalQuantity">0</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">إجمالي القيمة</div>
+          <div class="summary-value" id="totalValue">0.00</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">متوسط الخصم</div>
+          <div class="summary-value" id="avgDiscount">0.00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 🔧 تكوين Supabase
+    const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+    
+    // تهيئة عميل Supabase
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // عناصر DOM
+    let allData = [];
+    let currentData = [];
+    let isOnline = false;
+
+    // تهيئة الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeDates();
+        checkConnection();
+        loadStores();
+        loadCustomers();
+        loadItems();
+        loadReport();
+        
+        // مراقبة حالة الاتصال
+        window.addEventListener('online', checkConnection);
+        window.addEventListener('offline', checkConnection);
+    });
+
+    // التحقق من حالة الاتصال
+    async function checkConnection() {
+        const statusElement = document.getElementById('connectionStatus');
+        const statusText = document.getElementById('statusText');
+        
+        try {
+            // اختبار الاتصال بـ Supabase
+            const { data, error } = await supabase
+                .from('stores')
+                .select('store_id')
+                .limit(1);
+            
+            if (!error) {
+                isOnline = true;
+                statusElement.className = 'connection-status supabase';
+                statusElement.querySelector('.status-dot').className = 'status-dot connected';
+                statusText.textContent = 'متصل بـ Supabase';
+            } else {
+                throw error;
+            }
+        } catch (error) {
+            isOnline = false;
+            statusElement.className = 'connection-status offline';
+            statusElement.querySelector('.status-dot').className = 'status-dot disconnected';
+            statusText.textContent = 'غير متصل';
+            console.error('الاتصال بـ Supabase فشل:', error);
+        }
+    }
+
+    // تعيين التواريخ الافتراضية (الشهر الحالي)
+    function initializeDates() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        document.getElementById('fromDate').value = formatDate(firstDay);
+        document.getElementById('toDate').value = formatDate(today);
+    }
+
+    // عرض/إخفاء مؤشر التحميل
+    function setLoading(loading) {
+        const overlay = document.getElementById('loadingOverlay');
+        const btn = document.getElementById('loadReportBtn');
+        
+        if (loading) {
+            overlay.style.display = 'flex';
+            btn.innerHTML = '<div class="loading-spinner"></div> جارٍ التحميل...';
+            btn.disabled = true;
+        } else {
+            overlay.style.display = 'none';
+            btn.innerHTML = '<i class="fas fa-search"></i> عرض التقرير';
+            btn.disabled = false;
+        }
+    }
+
+    // عرض رسالة خطأ
+    function showError(message) {
+        const errorElement = document.getElementById('errorMessage');
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+
+    // إخفاء جميع حالات العرض
+    function resetDisplayStates() {
+        document.getElementById('errorMessage').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'none';
+        document.querySelector('#reportTable').style.display = 'table';
+    }
+
+    // تحميل قائمة المخازن من Supabase
+    async function loadStores() {
+        try {
+            const { data, error } = await supabase
+                .from('stores')
+                .select('store_id, store_name')
+                .order('store_id');
+            
+            if (error) throw error;
+            
+            const storeFrom = document.getElementById('storeFrom');
+            const storeTo = document.getElementById('storeTo');
+            
+            data.forEach(store => {
+                const option1 = new Option(`${store.store_id} - ${store.store_name}`, store.store_id);
+                const option2 = new Option(`${store.store_id} - ${store.store_name}`, store.store_id);
+                storeFrom.add(option1);
+                storeTo.add(option2);
+            });
+        } catch (error) {
+            console.error('Error loading stores:', error);
+            showError('⚠️ حدث خطأ في تحميل قائمة المخازن');
+        }
+    }
+
+    // تحميل قائمة العملاء من Supabase
+    async function loadCustomers() {
+        try {
+            const { data, error } = await supabase
+                .from('customers')
+                .select('customer_id, customer_name')
+                .order('customer_id');
+            
+            if (error) throw error;
+            
+            const customerSelect = document.getElementById('customer');
+            
+            data.forEach(customer => {
+                const option = new Option(`${customer.customer_id} - ${customer.customer_name}`, customer.customer_id);
+                customerSelect.add(option);
+            });
+        } catch (error) {
+            console.error('Error loading customers:', error);
+            showError('⚠️ حدث خطأ في تحميل قائمة العملاء');
+        }
+    }
+
+    // تحميل قائمة الأصناف من Supabase
+    async function loadItems() {
+        try {
+            const { data, error } = await supabase
+                .from('items')
+                .select('item_id, item_nm')
+                .order('item_id');
+            
+            if (error) throw error;
+            
+            const itemSelect = document.getElementById('item');
+            
+            data.forEach(item => {
+                const option = new Option(`${item.item_id} - ${item.item_nm}`, item.item_id);
+                itemSelect.add(option);
+            });
+        } catch (error) {
+            console.error('Error loading items:', error);
+            showError('⚠️ حدث خطأ في تحميل قائمة الأصناف');
+        }
+    }
+
+    // تحميل التقرير
+    async function loadReport() {
+        try {
+            setLoading(true);
+            resetDisplayStates();
+            
+            const filters = getFilters();
+            
+            // جلب البيانات من Supabase مع JOINs صحيحة
+            let query = supabase
+                .from('sales_return')
+                .select(`
+                    *,
+                    stores!inner(store_name),
+                    customers(customer_name),
+                    items!inner(item_nm),
+                    users(username)
+                `);
+            
+            // تطبيق الفلاتر
+            if (filters.fromDate) {
+                query = query.gte('tran_date', filters.fromDate);
+            }
+            if (filters.toDate) {
+                query = query.lte('tran_date', filters.toDate + ' 23:59:59');
+            }
+            if (filters.storeFrom) {
+                query = query.eq('store_id', parseInt(filters.storeFrom));
+            }
+            if (filters.storeTo) {
+                query = query.eq('store_id', parseInt(filters.storeTo));
+            }
+            if (filters.customer) {
+                query = query.eq('customer_id', parseInt(filters.customer));
+            }
+            if (filters.item) {
+                query = query.eq('item_id', filters.item);
+            }
+            
+            const { data, error } = await query;
+            
+            if (error) throw error;
+            
+            allData = data || [];
+            currentData = allData;
+            renderTable();
+            updateSummary();
+            
+        } catch (error) {
+            console.error('Error loading report:', error);
+            showError('⚠️ حدث خطأ في تحميل التقرير: ' + error.message);
+            
+            // في حالة الخطأ، نعرض بيانات فارغة
+            allData = [];
+            currentData = [];
+            renderTable();
+            updateSummary();
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // جلب الفلاتر
+    function getFilters() {
+        return {
+            fromDate: document.getElementById('fromDate').value,
+            toDate: document.getElementById('toDate').value,
+            storeFrom: document.getElementById('storeFrom').value,
+            storeTo: document.getElementById('storeTo').value,
+            customer: document.getElementById('customer').value,
+            item: document.getElementById('item').value
+        };
+    }
+
+    // عرض البيانات في الجدول
+    function renderTable() {
+        const tbody = document.querySelector('#reportTable tbody');
+        const emptyState = document.getElementById('emptyState');
+        const table = document.querySelector('#reportTable');
+        
+        tbody.innerHTML = '';
+        
+        if (currentData.length === 0) {
+            table.style.display = 'none';
+            emptyState.style.display = 'block';
+            return;
+        }
+        
+        table.style.display = 'table';
+        emptyState.style.display = 'none';
+        
+        currentData.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${formatDateTime(row.tran_date)}</td>
+                <td>${row.stores ? row.stores.store_name : row.store_id}</td>
+                <td>${row.customers ? row.customers.customer_name : (row.customer_id || '')}</td>
+                <td>${row.invoice_id}</td>
+                <td>${row.item_id}</td>
+                <td>${row.items ? row.items.item_nm : ''}</td>
+                <td>${formatNumber(row.item_qty)} ${row.unit_type || 'piece'}</td>
+                <td>${formatNumber(row.sale_price)}</td>
+                <td>${formatNumber(row.discount)}</td>
+                <td>${formatNumber(row.total_price)}</td>
+                <td>${row.return_reason || ''}</td>
+                <td>${row.users ? row.users.username : (row.user_id || '')}</td>
+                <td>${row.batch_no || ''}</td>
+                <td>${row.expiry_date ? formatDate(new Date(row.expiry_date)) : ''}</td>
+                <td>${row.sale_type || ''}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // تحديث الإحصائيات
+    function updateSummary() {
+        const totalReturns = currentData.length;
+        const totalQuantity = currentData.reduce((sum, row) => sum + (parseFloat(row.item_qty) || 0), 0);
+        const totalValue = currentData.reduce((sum, row) => sum + (parseFloat(row.total_price) || 0), 0);
+        const avgDiscount = currentData.length > 0 ? 
+            currentData.reduce((sum, row) => sum + (parseFloat(row.discount) || 0), 0) / currentData.length : 0;
+        
+        document.getElementById('totalReturns').textContent = totalReturns;
+        document.getElementById('totalQuantity').textContent = formatNumber(totalQuantity);
+        document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+        document.getElementById('avgDiscount').textContent = formatCurrency(avgDiscount);
+    }
+
+    // مسح الفلاتر
+    function resetFilters() {
+        document.getElementById('fromDate').value = '';
+        document.getElementById('toDate').value = '';
+        document.getElementById('storeFrom').value = '';
+        document.getElementById('storeTo').value = '';
+        document.getElementById('customer').value = '';
+        document.getElementById('item').value = '';
+        
+        initializeDates();
+    }
+
+    // طباعة التقرير
+    function printReport() {
+        window.print();
+    }
+
+    // التصدير
+    document.getElementById('exportFormat').addEventListener('change', function(e) {
+        const format = e.target.value;
+        if (format) {
+            exportReport(format);
+            e.target.value = '';
+        }
+    });
+
+    // تصدير التقرير
+    function exportReport(format) {
+        if (currentData.length === 0) {
+            alert('⚠️ لا توجد بيانات للتصدير');
+            return;
+        }
+        
+        switch (format) {
+            case 'csv':
+                exportToCSV();
+                break;
+            case 'excel':
+                exportToExcel();
+                break;
+            case 'pdf':
+                exportToPDF();
+                break;
+        }
+    }
+
+    // التصدير إلى CSV
+    function exportToCSV() {
+        const headers = ['التاريخ', 'المخزن', 'العميل', 'رقم الفاتورة', 'كود الصنف', 'اسم الصنف', 'الكمية', 'سعر البيع', 'الخصم', 'الإجمالي', 'سبب الإرجاع', 'المستخدم', 'الدفعة', 'تاريخ الصلاحية', 'نوع البيع'];
+        
+        const csvContent = [
+            headers.join(','),
+            ...currentData.map(row => [
+                formatDateTime(row.tran_date),
+                `"${row.stores ? row.stores.store_name : row.store_id}"`,
+                `"${row.customers ? row.customers.customer_name : (row.customer_id || '')}"`,
+                row.invoice_id,
+                `"${row.item_id}"`,
+                `"${row.items ? row.items.item_nm : ''}"`,
+                `${row.item_qty} ${row.unit_type || 'piece'}`,
+                row.sale_price,
+                row.discount,
+                row.total_price,
+                `"${row.return_reason || ''}"`,
+                `"${row.users ? row.users.username : (row.user_id || '')}"`,
+                `"${row.batch_no || ''}"`,
+                row.expiry_date ? formatDate(new Date(row.expiry_date)) : '',
+                row.sale_type || ''
+            ].join(','))
+        ].join('\n');
+        
+        downloadFile(csvContent, 'sales_return_report.csv', 'text/csv;charset=utf-8;');
+    }
+
+    // التصدير إلى Excel
+    function exportToExcel() {
+        // استخدام مكتبة SheetJS إذا كانت متوفرة، أو تنزيل كـ CSV
+        exportToCSV(); // بديل مؤقت
+    }
+
+    // التصدير إلى PDF
+    function exportToPDF() {
+        // استخدام مكتبة jsPDF إذا كانت متوفرة
+        alert('⚠️ خاصية التصدير إلى PDF قيد التطوير');
+    }
+
+    // وظائف مساعدة
+    function formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
+
+    function formatDateTime(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleString('ar-EG');
+    }
+
+    function formatNumber(num) {
+        return parseFloat(num || 0).toLocaleString('ar-EG');
+    }
+
+    function formatCurrency(num) {
+        return parseFloat(num || 0).toLocaleString('ar-EG', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function downloadFile(content, fileName, mimeType) {
+        const blob = new Blob(['\uFEFF' + content], { type: mimeType });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.click();
+    }
+  </script>
+</body>
+</html>

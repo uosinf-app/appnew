@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة أنواع الحسابات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 10px;
+        }
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+        }
+        .connection-status.supabase {
+            border-left: 4px solid #28a745;
+        }
+        .connection-status.local {
+            border-left: 4px solid #dc3545;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .switch-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 12px;
+        }
+        .switch-btn:hover {
+            background: #5a6268;
+        }
+        .search-box {
+            max-width: 300px;
+        }
+        .pagination {
+            margin-top: 1rem;
+        }
+        .page-btn {
+            margin: 0 2px;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+        }
+        .page-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط حالة الاتصال -->
+    <div id="connectionStatus" class="connection-status">
+        🔄 جاري التحميل...
+    </div>
+
+    <!-- الهيدر -->
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1><i class="fas fa-chart-pie me-2"></i>إدارة أنواع الحسابات</h1>
+                    <p class="mb-0">إضافة وتعديل وحذف أنواع الحسابات المحاسبية</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- زر الإضافة والبحث -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <button class="btn btn-primary" id="addAccountTypeBtn">
+                    <i class="fas fa-plus me-2"></i>إضافة نوع حساب جديد
+                </button>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex justify-content-end">
+                    <input type="text" id="searchBox" class="form-control search-box" placeholder="🔎 ابحث عن نوع حساب...">
+                    <button class="btn btn-outline-secondary ms-2" onclick="switchConnectionMode()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول البيانات -->
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>قائمة أنواع الحسابات</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="loading" id="loading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">جاري التحميل...</span>
+                            </div>
+                            <p class="mt-2">جاري تحميل البيانات...</p>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="accountTypesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>اسم نوع الحساب</th>
+                                        <th>تاريخ الإضافة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <!-- البيانات تأتي من JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- الترقيم وعرض العدد -->
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div id="itemCount" class="text-muted"></div>
+                            <div id="pagination" class="pagination"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال الإضافة والتعديل -->
+    <div class="modal fade" id="accountTypeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">إضافة نوع حساب جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="accountTypeForm">
+                        <input type="hidden" id="accountTypeId">
+                        <div class="mb-3">
+                            <label for="accountTypeName" class="form-label">اسم نوع الحساب</label>
+                            <input type="text" class="form-control" id="accountTypeName" required>
+                            <div class="invalid-feedback">يرجى إدخال اسم نوع الحساب</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="saveAccountTypeBtn">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- السكريبتات -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="./acc_type.js"></script>
+</body>
+</html>
