@@ -1,6 +1,8 @@
+cat > replit.nix << 'EOF'
 { pkgs }: {
   deps = [
-    pkgs.nodejs-20_x
+    pkgs.nodejs-18_x
     pkgs.nodePackages.npm
   ];
 }
+EOF
