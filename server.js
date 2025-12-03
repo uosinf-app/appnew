@@ -11,8 +11,16 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
   console.log("✅ Loaded local .env file");
 } else {
-  console.log("🌐 Running in production mode (Railway)");
+  console.log("🌐 Running in production mode");
 }
+
+// === Replit Environment Detection ===
+console.log("=== Environment Information ===");
+console.log("Platform:", process.env.REPL_ID ? "Replit" : "Local/Other");
+console.log("Node version:", process.version);
+console.log("NODE_ENV:", process.env.NODE_ENV || "development");
+console.log("PORT:", process.env.PORT || 3000);
+console.log("==============================");
 
 // استيراد قاعدة البيانات - استخدم المسار النسبي الصحيح
 import pool from "./db.js"; // تأكد من وجود ./ قبل db.js
@@ -41,12 +49,10 @@ import masterReportRouter from "./routes/masterrepbk.js";
 import inventoryrepbk from "./routes/inventoryrepbk.js";
 import priceOffersRouter from "./routes/offersbk.js";
 
-
 import offershowRoutes from './routes/offershowbk.js';
 
 import salesReturnRepRouter from "./routes/salesreturn_repbk.js";
 import dailyCashierRoutes from "./routes/dailyCashierbk.js";
-
 
 import accTypeRoutes from "./routes/acc_typebk.js";
 import accountRoutes from "./routes/accountbk.js";
@@ -54,18 +60,10 @@ import accTransactionRoutes from "./routes/acc_transactionbk.js";
 import accountReportRoutes from "./routes/account_reportbk.js";
 import allStoresRouter from "./routes/allstoresinfbk.js";
 
-
-
 import emplRouter from "./routes/emplbk.js";
 import deptRouter from "./routes/deptbk.js";
 import payrollRouter from "./routes/payrollbk.js";
 import attendRouter from "./routes/attendbk.js";
-
-
-
-
-
-
 
 // ======================== ⚙️ إعدادات التطبيق ========================
 const app = express();
@@ -109,14 +107,8 @@ app.use("/api/a_master", inventoryrepbk);
 app.use("/api/item_price_offers", priceOffersRouter);
 app.use('/api/offershow', offershowRoutes);
 
-
-
 app.use("/api/salesreturn_report", salesReturnRepRouter);
 app.use("/api/all-stores-report", allStoresRouter);
-
-
-
-
 
 // استخدام الـ routes
 app.use('/api/daily-cashier', dailyCashierRoutes);
@@ -129,6 +121,7 @@ app.use("/api/emplbk", emplRouter);
 app.use("/api/deptbk", deptRouter);
 app.use("/api/payrollbk", payrollRouter);
 app.use("/api/attendbk", attendRouter);
+
 // ======================== 🏠 الصفحة الرئيسية ========================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "purchases_rep.html"));
@@ -279,5 +272,6 @@ syncScreensOnStartup();
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`🔗 Railway URL will be available after deployment`);
+  console.log(`🌍 Public URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+  console.log(`📊 Check Environment Variables in Replit Secrets`);
 });
