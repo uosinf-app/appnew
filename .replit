@@ -1,3 +1,9 @@
-echo 'language = "nodejs"' > .replit
-echo 'run = "npm start"' >> .replit
-echo 'entrypoint = "server.js"' >> .replit
+language = "nodejs"
+run = "npm start"
+
+[nix]
+channel = "stable-24_05"
+
+[env]
+PORT = "3000"
+NODE_ENV = "development"
