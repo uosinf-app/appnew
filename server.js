@@ -17,9 +17,14 @@ if (process.env.NODE_ENV !== 'production') {
 // === Replit Environment Detection ===
 console.log("=== Environment Information ===");
 console.log("Platform:", process.env.REPL_ID ? "Replit" : "Local/Other");
+console.log("Replit URL:", process.env.REPL_ID 
+  ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+  : "Not on Replit"
+);
 console.log("Node version:", process.version);
 console.log("NODE_ENV:", process.env.NODE_ENV || "development");
 console.log("PORT:", process.env.PORT || 3000);
+console.log("CORS Origins:", process.env.CORS_ORIGIN || "Not set");
 console.log("==============================");
 
 // استيراد قاعدة البيانات - استخدم المسار النسبي الصحيح
@@ -43,7 +48,7 @@ import salesRouter from "./routes/salesbk.js";
 import salesReturnRouter from "./routes/salesreturnbk.js";
 import searchRoutes from './routes/searchbk.js';
 import transferRoutes from './routes/transferItembk.js';
-import acceptTransferRoutes from './routes/acceptTransferbk.js';
+import acceptTransferRoutes from './routes/acceptTransferbk.js";
 import unitRoutes from './routes/unitbk.js';
 import masterReportRouter from "./routes/masterrepbk.js";
 import inventoryrepbk from "./routes/inventoryrepbk.js";
@@ -72,8 +77,46 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ======================== 🔧 إعدادات CORS المتقدمة ========================
+const corsOptions = {
+  origin: function (origin, callback) {
+    // السماح للجميع في التطوير المحلي
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    // في Replit، السماح للنطاقات المعروفة
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'https://*.repl.co',
+      'https://*.replit.dev'
+    ];
+    
+    // السماح للطلبات بدون origin (مثل curl)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // التحقق من النطاقات المسموحة
+    if (allowedOrigins.some(pattern => {
+      if (pattern.includes('*')) {
+        const regexPattern = pattern.replace('.', '\\.').replace('*', '.*');
+        return new RegExp(regexPattern).test(origin);
+      }
+      return pattern === origin;
+    })) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -262,16 +305,86 @@ async function runAutoReturn() {
     }
 }
 
-// تشغيل مرة واحدة عند بدء الخادم (بعد 10 ثواني)
-setTimeout(runAutoReturn, 10000);
+// ======================== ⚠️ معالجة الأخطاء ========================
+app.use((err, req, res, next) => {
+  console.error('❌ Server Error:', err.stack);
+  
+  // CORS errors
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      success: false,
+      message: 'CORS Error: Origin not allowed',
+      origin: req.headers.origin
+    });
+  }
+  
+  res.status(500).json({
+    success: false,
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
 
-// 🔁 تشغيل المزامنة التلقائية عند تشغيل السيرفر
-syncScreensOnStartup();
+// ======================== 🚫 Route Not Found ========================
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    path: req.path
+  });
+});
 
 // ======================== 🚀 تشغيل السيرفر ========================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`🌍 Public URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
-  console.log(`📊 Check Environment Variables in Replit Secrets`);
-});
+const startServer = async () => {
+  try {
+    // اختبار الاتصال بقاعدة البيانات أولاً
+    console.log('🔗 Testing database connection...');
+    await pool.connect();
+    console.log("✅ Database connected successfully");
+    
+    // تشغيل المهام الأولية
+    console.log('🔄 Running startup tasks...');
+    await syncScreensOnStartup();
+    
+    // تشغيل الإرجاع التلقائي (بعد 10 ثواني)
+    setTimeout(runAutoReturn, 10000);
+    
+    // بدء السيرفر
+    const PORT = process.env.PORT || 3000;
+    const server = app.listen(PORT, () => {
+      console.log(`========================================`);
+      console.log(`🚀 Server successfully started!`);
+      console.log(`📡 Local: http://localhost:${PORT}`);
+      
+      if (process.env.REPL_ID) {
+        const publicUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+        console.log(`🌍 Public: ${publicUrl}`);
+        console.log(`🔧 Environment: Replit`);
+      } else {
+        console.log(`🔧 Environment: Local Development`);
+      }
+      
+      console.log(`🕐 Time: ${new Date().toLocaleString()}`);
+      console.log(`========================================`);
+    });
+    
+    // معالجة إيقاف التشغيل بشكل أنيق
+    process.on('SIGTERM', () => {
+      console.log('🛑 SIGTERM received. Shutting down gracefully...');
+      server.close(() => {
+        console.log('✅ Server closed');
+        pool.end(() => {
+          console.log('✅ Database connection closed');
+          process.exit(0);
+        });
+      });
+    });
+    
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+// تشغيل السيرفر
+startServer();
